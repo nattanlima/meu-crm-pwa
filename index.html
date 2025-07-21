@@ -11,7 +11,7 @@
     <!-- Favicons para Navegadores -->
     <link rel="icon" type="image/png" sizes="32x32" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon-16x16.png">
-    <link rel="shortcut icon" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon-16x16.ico">
+    <link rel="shortcut icon" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon.ico">
 
     <!-- Ícone para "Adicionar à Tela de Início" no iOS -->
     <link rel="apple-touch-icon" href="https://nattanlima.github.io/meu-crm-pwa/icons/apple-touch-icon.png">
@@ -90,6 +90,11 @@
                 </div>
             </div>
             <div class="hidden md:flex items-center space-x-4 justify-end">
+                <!-- INÍCIO: Botão de Instalação do PWA -->
+                <button id="install-pwa-button" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full" title="Instalar App">
+                    <i class="fas fa-download"></i>
+                </button>
+                <!-- FIM: Botão de Instalação do PWA -->
                 <div id="user-info" class="text-right"></div>
                 <button id="logout-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-full" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
             </div>
@@ -125,6 +130,7 @@
         let appData = {};
         let quillEditor = null;
         let currentUser = null;
+        let deferredPrompt; // Variável para guardar o evento de instalação
 
         // --- FUNÇÕES DE UTILIDADE ---
         function jsonpRequest(url, callback) {
@@ -876,7 +882,7 @@
             });
         }
 
-        // --- Lógica para PWA ---
+        // --- INÍCIO: Lógica para PWA ---
         document.addEventListener('DOMContentLoaded', () => {
             const manifest = {
                 "name": "Prisme Sales - CRM",
@@ -959,6 +965,28 @@
                 });
             }
         });
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installButton = document.getElementById('install-pwa-button');
+            if(installButton) {
+                installButton.classList.remove('hidden');
+                installButton.addEventListener('click', () => {
+                    installButton.classList.add('hidden');
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('Usuário instalou o PWA');
+                        } else {
+                            console.log('Usuário recusou a instalação do PWA');
+                        }
+                        deferredPrompt = null;
+                    });
+                });
+            }
+        });
+        // --- FIM: Lógica para PWA ---
     </script>
 </body>
 </html>
