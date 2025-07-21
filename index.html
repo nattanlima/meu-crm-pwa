@@ -95,6 +95,13 @@
         .filter-tag-option:hover {
             background-color: #f1f5f9; /* slate-100 */
         }
+        
+        /* --- ESTILOS DO AVATAR COM FALLBACK --- */
+        .avatar .avatar-img { display: block; }
+        .avatar .avatar-fallback { display: none; }
+        .avatar.error .avatar-img { display: none; }
+        .avatar.error .avatar-fallback { display: flex; }
+
 
         /* --- OUTROS ESTILOS --- */
         .kanban-card { user-select: none; }
@@ -185,7 +192,7 @@
                 </button>
                 <!-- Menu de Usuário -->
                 <div id="user-menu-container" class="relative">
-                    <button id="user-avatar-btn" class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <button id="user-avatar-btn" class="avatar w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 overflow-hidden">
                         <!-- User initial or image will be inserted here -->
                     </button>
                     <div id="logout-popup" class="hidden popup-menu absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
@@ -307,24 +314,18 @@
                 loadingScreen.classList.remove('hidden');
             }
             
-            // Popula o menu do usuário
             const userAvatarBtn = document.getElementById('user-avatar-btn');
-            userAvatarBtn.innerHTML = ''; // Limpa o conteúdo anterior
+            userAvatarBtn.innerHTML = '';
+            userAvatarBtn.classList.remove('error');
             const userInitial = currentUser.NomeUsuario ? currentUser.NomeUsuario.charAt(0).toUpperCase() : '?';
-            const fallbackAvatarHtml = `<span class='text-lg'>${userInitial}</span>`;
+            const fallbackHtml = `<div class="avatar-fallback flex items-center justify-center w-full h-full"><span class='text-lg'>${userInitial}</span></div>`;
 
             if (currentUser.FotoURL) {
-                const avatarImg = document.createElement('img');
-                avatarImg.src = currentUser.FotoURL;
-                avatarImg.className = 'w-full h-full rounded-full object-cover';
-                avatarImg.alt = 'Avatar';
-                // Define o fallback caso a imagem falhe ao carregar
-                avatarImg.onerror = () => {
-                    userAvatarBtn.innerHTML = fallbackAvatarHtml;
-                };
-                userAvatarBtn.appendChild(avatarImg);
+                const imgHtml = `<img src="${currentUser.FotoURL}" class="avatar-img w-full h-full rounded-full object-cover" alt="Avatar" onerror="this.parentElement.classList.add('error')">`;
+                userAvatarBtn.innerHTML = imgHtml + fallbackHtml;
             } else {
-                userAvatarBtn.innerHTML = fallbackAvatarHtml;
+                userAvatarBtn.innerHTML = fallbackHtml;
+                userAvatarBtn.classList.add('error');
             }
             
             document.getElementById('popup-user-name').textContent = currentUser.NomeUsuario;
@@ -573,9 +574,25 @@
             const nextTask = clientTasks[0];
 
             let nextTaskHtml;
+            let userAvatarHtml = '';
 
             if (nextTask) {
                 const timeInfo = formatTimeRemaining(nextTask.PrazoFinal);
+                const responsibleUser = appData.users.find(u => u.ID_Usuario === nextTask.Responsavel_ID);
+                
+                if (responsibleUser) {
+                    const userInitial = responsibleUser.NomeUsuario ? responsibleUser.NomeUsuario.charAt(0).toUpperCase() : '?';
+                    const fallbackDiv = `<div class="avatar-fallback w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold" title="${responsibleUser.NomeUsuario}">${userInitial}</div>`;
+                    if (responsibleUser.FotoURL) {
+                        const imgTag = `<img src="${responsibleUser.FotoURL}" class="avatar-img w-8 h-8 rounded-full flex-shrink-0 object-cover" title="${responsibleUser.NomeUsuario}" onerror="this.parentElement.classList.add('error')">`;
+                        userAvatarHtml = `<div class="avatar w-8 h-8 flex-shrink-0">${imgTag}${fallbackDiv}</div>`;
+                    } else {
+                        userAvatarHtml = `<div class="avatar error w-8 h-8 flex-shrink-0">${fallbackDiv}</div>`;
+                    }
+                } else {
+                    userAvatarHtml = `<div class="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-400 text-xs" title="Sem responsável"><i class="fas fa-user"></i></div>`;
+                }
+
                 nextTaskHtml = `
                     <div class="mt-3 pt-3 border-t border-gray-100 group relative cursor-pointer" data-task-id="${nextTask.ID_Tarefa}">
                         <div class="absolute inset-0 bg-green-100 opacity-0 group-hover:opacity-100 transition-opacity rounded-md hidden md:flex items-center justify-center">
@@ -587,7 +604,7 @@
                                 <span class="text-sm text-gray-700 font-medium">${nextTask.TituloTarefa}</span>
                                 <p class="text-sm mt-1 ${timeInfo.colorClass} ${timeInfo.pulse ? 'pulse-animation' : ''}">${timeInfo.text}</p>
                             </div>
-                            <div class="user-avatar-placeholder w-8 h-8 flex-shrink-0"></div>
+                            ${userAvatarHtml}
                         </div>
                     </div>
                 `;
@@ -602,36 +619,6 @@
                 <div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-green-500 h-2 rounded-full" style="width: ${progress}%"></div></div>
                 ${nextTaskHtml}
             `;
-
-            // Programmatically create and append avatar to avoid innerHTML issues
-            const avatarPlaceholder = card.querySelector('.user-avatar-placeholder');
-            if (avatarPlaceholder && nextTask) {
-                const responsibleUser = appData.users.find(u => u.ID_Usuario === nextTask.Responsavel_ID);
-                
-                if (responsibleUser) {
-                    const userInitial = responsibleUser.NomeUsuario ? responsibleUser.NomeUsuario.charAt(0).toUpperCase() : '?';
-                    const fallbackAvatar = document.createElement('div');
-                    fallbackAvatar.className = 'w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold';
-                    fallbackAvatar.title = responsibleUser.NomeUsuario;
-                    fallbackAvatar.textContent = userInitial;
-
-                    if (responsibleUser.FotoURL) {
-                        const avatarImg = document.createElement('img');
-                        avatarImg.src = responsibleUser.FotoURL;
-                        avatarImg.className = 'w-8 h-8 rounded-full flex-shrink-0 object-cover';
-                        avatarImg.title = responsibleUser.NomeUsuario;
-                        avatarImg.onerror = () => {
-                            avatarPlaceholder.innerHTML = ''; // Clear placeholder in case of error
-                            avatarPlaceholder.appendChild(fallbackAvatar);
-                        };
-                        avatarPlaceholder.appendChild(avatarImg);
-                    } else {
-                        avatarPlaceholder.appendChild(fallbackAvatar);
-                    }
-                } else {
-                    avatarPlaceholder.innerHTML = `<div class="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-400 text-xs" title="Sem responsável"><i class="fas fa-user"></i></div>`;
-                }
-            }
             
             card.addEventListener('click', (e) => { e.stopPropagation(); showClientModal(client.ID_Cliente); });
             
