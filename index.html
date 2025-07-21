@@ -10,8 +10,8 @@
     
     <!-- Favicons para Navegadores -->
     <link rel="icon" type="image/png" sizes="32x32" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon-16x16.ico">
-    <link rel="shortcut icon" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon-16x16.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon-16x16.png">
+    <link rel="shortcut icon" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon.ico">
 
     <!-- Ícone para "Adicionar à Tela de Início" no iOS -->
     <link rel="apple-touch-icon" href="https://nattanlima.github.io/meu-crm-pwa/icons/apple-touch-icon.png">
@@ -341,29 +341,9 @@
             return card;
         }
         
-        // --- INICIALIZAÇÃO E EVENTOS GERAIS ---
+        // --- INÍCIO: Lógica do PWA e Inicialização da Aplicação ---
         document.addEventListener('DOMContentLoaded', () => {
-            const savedUser = localStorage.getItem('crmUser');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                showApp(true);
-            } else {
-                showLogin();
-            }
-
-            clientModal.addEventListener('click', (e) => {
-                if (e.target === clientModal) {
-                    hideClientModal();
-                }
-            });
-
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && !clientModal.classList.contains('hidden')) {
-                    hideClientModal();
-                }
-            });
-
-            // --- INÍCIO: Lógica para PWA ---
+            // Configuração do Manifesto
             const manifest = {
                 "name": "Prisme Sales - CRM",
                 "short_name": "Prisme CRM",
@@ -385,98 +365,83 @@
                     }
                 ]
             };
-
             const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
             const manifestUrl = URL.createObjectURL(manifestBlob);
             document.getElementById('manifest').setAttribute('href', manifestUrl);
 
+            // Registro do Service Worker
             if ('serviceWorker' in navigator) {
                 const swContent = `
                     const CACHE_NAME = 'prisme-crm-cache-v1';
                     const urlsToCache = [
-                        '.',
-                        'https://cdn.tailwindcss.com',
-                        'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js',
-                        'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
-                        'https://cdn.quilljs.com/1.3.6/quill.snow.css',
-                        'https://cdn.quilljs.com/1.3.6/quill.min.js',
-                        'https://crm.prismeapp.com.br/web/binary/company_logo'
+                        '.', 'https://cdn.tailwindcss.com', 'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js',
+                        'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css', 'https://cdn.quilljs.com/1.3.6/quill.snow.css',
+                        'https://cdn.quilljs.com/1.3.6/quill.min.js', 'https://crm.prismeapp.com.br/web/binary/company_logo'
                     ];
-
-                    self.addEventListener('install', event => {
-                        event.waitUntil(
-                            caches.open(CACHE_NAME)
-                                .then(cache => {
-                                    console.log('Cache aberto');
-                                    return cache.addAll(urlsToCache);
-                                })
-                        );
-                    });
-
-                    self.addEventListener('fetch', event => {
-                        if (event.request.url.startsWith('https://script.google.com')) {
-                            return fetch(event.request);
-                        }
-
-                        event.respondWith(
-                            caches.match(event.request)
-                                .then(response => {
-                                    if (response) {
-                                        return response;
-                                    }
-                                    return fetch(event.request);
-                                }
-                            )
-                        );
+                    self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache))));
+                    self.addEventListener('fetch', e => {
+                        if (e.request.url.startsWith('https://script.google.com')) return fetch(e.request);
+                        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
                     });
                 `;
-
                 const swBlob = new Blob([swContent], { type: 'application/javascript' });
                 const swUrl = URL.createObjectURL(swBlob);
-
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register(swUrl)
-                        .then(registration => {
-                            console.log('ServiceWorker registrado com sucesso: ', registration.scope);
-                        })
-                        .catch(error => {
-                            console.log('Falha no registro do ServiceWorker: ', error);
-                        });
+                        .then(reg => console.log('ServiceWorker registrado:', reg.scope))
+                        .catch(err => console.log('Falha no registro do ServiceWorker:', err));
                 });
             }
 
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                const installButtonLogin = document.getElementById('install-pwa-login-button');
-                const installButtonHeader = document.getElementById('install-pwa-header-button');
-                
-                const showInstallButtons = () => {
-                    if (installButtonLogin) installButtonLogin.classList.remove('hidden');
-                    if (installButtonHeader) installButtonHeader.classList.remove('hidden');
-                };
+            // Lógica de inicialização principal
+            const savedUser = localStorage.getItem('crmUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showApp(true);
+            } else {
+                showLogin();
+            }
 
-                const installHandler = () => {
-                    if (installButtonLogin) installButtonLogin.classList.add('hidden');
-                    if (installButtonHeader) installButtonHeader.classList.add('hidden');
-                    
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') {
-                            console.log('Usuário instalou o PWA');
-                        } else {
-                            console.log('Usuário recusou a instalação do PWA');
-                        }
-                        deferredPrompt = null;
-                    });
-                };
-
-                showInstallButtons();
-                if (installButtonLogin) installButtonLogin.addEventListener('click', installHandler);
-                if (installButtonHeader) installButtonHeader.addEventListener('click', installHandler);
+            clientModal.addEventListener('click', (e) => {
+                if (e.target === clientModal) hideClientModal();
             });
-            // --- FIM: Lógica para PWA ---
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !clientModal.classList.contains('hidden')) hideClientModal();
+            });
         });
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installButtonLogin = document.getElementById('install-pwa-login-button');
+            const installButtonHeader = document.getElementById('install-pwa-header-button');
+            
+            const showInstallButtons = () => {
+                if (installButtonLogin) installButtonLogin.classList.remove('hidden');
+                if (installButtonHeader) installButtonHeader.classList.remove('hidden');
+            };
+
+            const installHandler = () => {
+                if (installButtonLogin) installButtonLogin.classList.add('hidden');
+                if (installButtonHeader) installButtonHeader.classList.add('hidden');
+                
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('Usuário instalou o PWA');
+                    } else {
+                        console.log('Usuário recusou a instalação do PWA');
+                    }
+                    deferredPrompt = null;
+                });
+            };
+
+            showInstallButtons();
+            if (installButtonLogin) installButtonLogin.addEventListener('click', installHandler);
+            if (installButtonHeader) installButtonHeader.addEventListener('click', installHandler);
+        });
+        // --- FIM: Lógica do PWA e Inicialização da Aplicação ---
         
         // --- FUNÇÕES DE LÓGICA (MODAL, TAREFAS, ETC.) ---
         
