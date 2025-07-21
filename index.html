@@ -39,8 +39,8 @@
         /* --- ESTILOS DO QUADRO KANBAN (ESTILO TRELLO) --- */
         #kanban-board {
             height: calc(100vh - 73px); /* Altura do header em desktop */
-            overflow-x: auto; /* CORREÇÃO: Garante o scroll horizontal */
-            overflow-y: hidden; /* CORREÇÃO: Previne o scroll vertical no quadro */
+            overflow-x: auto; /* Garante o scroll horizontal */
+            overflow-y: hidden; /* Previne o scroll vertical no quadro */
         }
         @media (max-width: 767px) {
             #kanban-board {
@@ -306,15 +306,27 @@
                 loginScreen.classList.add('hidden');
                 loadingScreen.classList.remove('hidden');
             }
+            
             // Popula o menu do usuário
             const userAvatarBtn = document.getElementById('user-avatar-btn');
+            userAvatarBtn.innerHTML = ''; // Limpa o conteúdo anterior
             const userInitial = currentUser.NomeUsuario ? currentUser.NomeUsuario.charAt(0).toUpperCase() : '?';
-            const fallbackAvatar = `<span class='text-lg'>${userInitial}</span>`;
+            const fallbackAvatarHtml = `<span class='text-lg'>${userInitial}</span>`;
+
             if (currentUser.FotoURL) {
-                userAvatarBtn.innerHTML = `<img src="${currentUser.FotoURL}" class="w-full h-full rounded-full object-cover" alt="Avatar" onerror="this.outerHTML = '${fallbackAvatar.replace(/'/g, '\\"')}';">`;
+                const avatarImg = document.createElement('img');
+                avatarImg.src = currentUser.FotoURL;
+                avatarImg.className = 'w-full h-full rounded-full object-cover';
+                avatarImg.alt = 'Avatar';
+                // Define o fallback caso a imagem falhe ao carregar
+                avatarImg.onerror = () => {
+                    userAvatarBtn.innerHTML = fallbackAvatarHtml;
+                };
+                userAvatarBtn.appendChild(avatarImg);
             } else {
-                userAvatarBtn.innerHTML = fallbackAvatar;
+                userAvatarBtn.innerHTML = fallbackAvatarHtml;
             }
+            
             document.getElementById('popup-user-name').textContent = currentUser.NomeUsuario;
             document.getElementById('popup-user-email').textContent = currentUser.Email;
             
@@ -463,6 +475,9 @@
                 if (!userMenuContainer.contains(e.target)) {
                     logoutPopup.classList.add('hidden');
                 }
+                 if (!document.getElementById('filter-container').contains(e.target)) {
+                    document.getElementById('filter-popup').classList.add('hidden');
+                }
             });
         }
 
@@ -568,7 +583,7 @@
                     const userInitial = responsibleUser.NomeUsuario ? responsibleUser.NomeUsuario.charAt(0).toUpperCase() : '?';
                     const fallbackAvatar = `<div class='w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold' title='${responsibleUser.NomeUsuario}'>${userInitial}</div>`;
                     userAvatarHtml = responsibleUser.FotoURL 
-                        ? `<img src="${responsibleUser.FotoURL}" class="w-8 h-8 rounded-full flex-shrink-0 object-cover" title="${responsibleUser.NomeUsuario}" onerror="this.outerHTML = '${fallbackAvatar.replace(/"/g, '\\"')}'">`
+                        ? `<img src="${responsibleUser.FotoURL}" class="w-8 h-8 rounded-full flex-shrink-0 object-cover" title="${responsibleUser.NomeUsuario}" onerror="this.outerHTML = '${fallbackAvatar.replace(/"/g, '\\"')}';">`
                         : fallbackAvatar;
                 }
                 
