@@ -5,11 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prisme Sales - CRM</title>
     
-    <!-- INÍCIO: Tags para PWA -->
+    <!-- INÍCIO: Tags para PWA e Ícones Personalizados -->
     <meta name="theme-color" content="#2fc36a">
-    <link rel="apple-touch-icon" href="https://placehold.co/192x192/2fc36a/ffffff?text=CRM">
+    
+    <!-- Favicons para Navegadores -->
+    <link rel="icon" type="image/png" sizes="32x32" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon-16x16.png">
+    <link rel="shortcut icon" href="https://nattanlima.github.io/meu-crm-pwa/icons/favicon.ico">
+
+    <!-- Ícone para "Adicionar à Tela de Início" no iOS -->
+    <link rel="apple-touch-icon" href="https://nattanlima.github.io/meu-crm-pwa/icons/apple-touch-icon.png">
+
+    <!-- Manifesto do PWA -->
     <link rel="manifest" id="manifest">
-    <!-- FIM: Tags para PWA -->
+    <!-- FIM: Tags para PWA e Ícones Personalizados -->
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -867,9 +876,8 @@
             });
         }
 
-        // --- INÍCIO: Lógica para PWA ---
+        // --- Lógica para PWA ---
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. Criar o Manifesto dinamicamente
             const manifest = {
                 "name": "Prisme Sales - CRM",
                 "short_name": "Prisme CRM",
@@ -880,12 +888,12 @@
                 "description": "Um CRM simples e poderoso para gestão de clientes.",
                 "icons": [
                     {
-                        "src": "https://placehold.co/192x192/2fc36a/ffffff?text=CRM",
+                        "src": "https://nattanlima.github.io/meu-crm-pwa/icons/icon-192x192.png",
                         "sizes": "192x192",
                         "type": "image/png"
                     },
                     {
-                        "src": "https://placehold.co/512x512/2fc36a/ffffff?text=CRM",
+                        "src": "https://nattanlima.github.io/meu-crm-pwa/icons/icon-512x512.png",
                         "sizes": "512x512",
                         "type": "image/png"
                     }
@@ -896,13 +904,11 @@
             const manifestUrl = URL.createObjectURL(manifestBlob);
             document.getElementById('manifest').setAttribute('href', manifestUrl);
 
-            // 2. Registrar o Service Worker
             if ('serviceWorker' in navigator) {
                 const swContent = `
                     const CACHE_NAME = 'prisme-crm-cache-v1';
-                    // Adicionar a URL base do seu script para o cache
                     const urlsToCache = [
-                        '.', // Cache a página atual
+                        '.',
                         'https://cdn.tailwindcss.com',
                         'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js',
                         'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
@@ -922,7 +928,6 @@
                     });
 
                     self.addEventListener('fetch', event => {
-                        // Ignora os pedidos para o Google Apps Script para que os dados estejam sempre atualizados
                         if (event.request.url.startsWith('https://script.google.com')) {
                             return fetch(event.request);
                         }
@@ -930,11 +935,9 @@
                         event.respondWith(
                             caches.match(event.request)
                                 .then(response => {
-                                    // Se o recurso estiver no cache, retorna ele
                                     if (response) {
                                         return response;
                                     }
-                                    // Caso contrário, busca na rede
                                     return fetch(event.request);
                                 }
                             )
@@ -956,7 +959,6 @@
                 });
             }
         });
-        // --- FIM: Lógica para PWA ---
     </script>
 </body>
 </html>
