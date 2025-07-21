@@ -39,6 +39,8 @@
         /* --- ESTILOS DO QUADRO KANBAN (ESTILO TRELLO) --- */
         #kanban-board {
             height: calc(100vh - 73px); /* Altura do header em desktop */
+            overflow-x: auto; /* CORREÇÃO: Garante o scroll horizontal */
+            overflow-y: hidden; /* CORREÇÃO: Previne o scroll vertical no quadro */
         }
         @media (max-width: 767px) {
             #kanban-board {
