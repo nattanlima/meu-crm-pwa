@@ -80,11 +80,11 @@
             margin-left: 8px;
         }
 
-        /* --- ESTILOS DO FILTRO DE TAGS POPUP --- */
-        #filter-popup {
+        /* --- ESTILOS DO FILTRO E MENU DE USUÁRIO --- */
+        .popup-menu {
             transition: transform 0.2s ease-out, opacity 0.2s ease-out;
         }
-        #filter-popup.hidden {
+        .popup-menu.hidden {
             transform: translateY(-10px);
             opacity: 0;
             pointer-events: none;
@@ -162,7 +162,7 @@
                             <span id="filter-btn-text">TODOS</span>
                             <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
                          </button>
-                         <div id="filter-popup" class="hidden absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                         <div id="filter-popup" class="hidden popup-menu absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                              <div id="filter-options-container" class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
                                  <!-- Opções de filtro serão inseridas aqui -->
                              </div>
@@ -183,8 +183,21 @@
                 <button id="install-pwa-header-button" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full" title="Instalar App">
                     <i class="fas fa-download"></i>
                 </button>
-                <div id="user-info" class="text-right hidden md:block"></div>
-                <button id="logout-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-full" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
+                <!-- Menu de Usuário -->
+                <div id="user-menu-container" class="relative">
+                    <button id="user-avatar-btn" class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <!-- User initial or image will be inserted here -->
+                    </button>
+                    <div id="logout-popup" class="hidden popup-menu absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                        <div class="py-1">
+                            <div class="px-4 py-2 border-b">
+                                <p id="popup-user-name" class="text-sm font-semibold text-gray-900 truncate"></p>
+                                <p id="popup-user-email" class="text-sm text-gray-500 truncate"></p>
+                            </div>
+                            <a href="#" id="popup-logout-btn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sair</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
         <main id="kanban-board" class="kanban-board-container flex space-x-4 p-4 flex-grow"></main>
@@ -221,8 +234,6 @@
         const crmApp = document.getElementById('crm-app');
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
-        const userInfo = document.getElementById('user-info');
-        const logoutButton = document.getElementById('logout-button');
         const kanbanBoard = document.getElementById('kanban-board');
         const clientModal = document.getElementById('client-modal');
         const modalContent = document.getElementById('modal-content');
@@ -295,7 +306,18 @@
                 loginScreen.classList.add('hidden');
                 loadingScreen.classList.remove('hidden');
             }
-            userInfo.innerHTML = `<div class="font-semibold text-gray-700">${currentUser.NomeUsuario}</div><div class="text-xs text-gray-500">${currentUser.Email}</div>`;
+            // Popula o menu do usuário
+            const userAvatarBtn = document.getElementById('user-avatar-btn');
+            const userInitial = currentUser.NomeUsuario ? currentUser.NomeUsuario.charAt(0).toUpperCase() : '?';
+            const fallbackAvatar = `<span class='text-lg'>${userInitial}</span>`;
+            if (currentUser.FotoURL) {
+                userAvatarBtn.innerHTML = `<img src="${currentUser.FotoURL}" class="w-full h-full rounded-full object-cover" alt="Avatar" onerror="this.outerHTML = '${fallbackAvatar.replace(/'/g, '\\"')}';">`;
+            } else {
+                userAvatarBtn.innerHTML = fallbackAvatar;
+            }
+            document.getElementById('popup-user-name').textContent = currentUser.NomeUsuario;
+            document.getElementById('popup-user-email').textContent = currentUser.Email;
+            
             initializeApp();
         }
 
@@ -324,8 +346,6 @@
             });
         });
 
-        logoutButton.addEventListener('click', showLogin);
-
         function initializeApp() {
             jsonpRequest(`${SCRIPT_URL}?action=getData`, (err, data) => {
                 loadingScreen.classList.add('hidden');
@@ -338,6 +358,7 @@
                 }
                 appData = data;
                 setupFilterLogic();
+                setupUserMenu();
                 applyFiltersAndRender();
             });
         }
@@ -373,7 +394,6 @@
 
             optionsContainer.innerHTML = ''; // Limpa opções antigas
 
-            // Popula as opções do popup
             if (appData.tags) {
                 appData.tags.forEach(tag => {
                     const option = document.createElement('a');
@@ -395,7 +415,6 @@
                         const target = e.currentTarget;
                         activeTagId = target.dataset.tagId;
 
-                        // Atualiza o botão principal
                         btnText.textContent = target.dataset.tagName;
                         triggerBtn.style.backgroundColor = `${target.dataset.tagColor}20`;
                         triggerBtn.style.color = target.dataset.tagColor;
@@ -409,27 +428,40 @@
                 });
             }
 
-            // Lógica de clique no botão principal
             triggerBtn.addEventListener('click', () => {
                 if (triggerBtn.dataset.activeTagId) {
-                    // Se uma tag está ativa, reseta o filtro
                     activeTagId = null;
                     triggerBtn.dataset.activeTagId = '';
                     btnText.textContent = 'TODOS';
                     triggerBtn.style.backgroundColor = 'white';
-                    triggerBtn.style.color = '#374151'; // text-gray-700
-                    triggerBtn.style.borderColor = '#D1D5DB'; // border-gray-300
+                    triggerBtn.style.color = '#374151';
+                    triggerBtn.style.borderColor = '#D1D5DB';
                     applyFiltersAndRender();
                 } else {
-                    // Se nenhuma tag está ativa, abre/fecha o popup
                     popup.classList.toggle('hidden');
                 }
             });
+        }
+        
+        function setupUserMenu() {
+            const userMenuContainer = document.getElementById('user-menu-container');
+            const userAvatarBtn = document.getElementById('user-avatar-btn');
+            const logoutPopup = document.getElementById('logout-popup');
+            const popupLogoutBtn = document.getElementById('popup-logout-btn');
 
-            // Fecha o popup se clicar fora
+            userAvatarBtn.addEventListener('click', () => {
+                logoutPopup.classList.toggle('hidden');
+            });
+
+            popupLogoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                logoutPopup.classList.add('hidden');
+                showLogin();
+            });
+
             document.addEventListener('click', (e) => {
-                if (!filterContainer.contains(e.target)) {
-                    popup.classList.add('hidden');
+                if (!userMenuContainer.contains(e.target)) {
+                    logoutPopup.classList.add('hidden');
                 }
             });
         }
