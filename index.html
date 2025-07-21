@@ -39,8 +39,6 @@
         /* --- ESTILOS DO QUADRO KANBAN (ESTILO TRELLO) --- */
         #kanban-board {
             height: calc(100vh - 73px); /* Altura do header em desktop */
-            overflow-x: auto;
-            overflow-y: hidden; /* Garante que o scroll vertical não aconteça no board */
         }
         @media (max-width: 767px) {
             #kanban-board {
@@ -70,7 +68,31 @@
         #task-list-container::-webkit-scrollbar, #ticket-list-container::-webkit-scrollbar { width: 6px; }
         #task-list-container::-webkit-scrollbar-track, #ticket-list-container::-webkit-scrollbar-track { background: #e2e8f0; }
         #task-list-container::-webkit-scrollbar-thumb, #ticket-list-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+        .tab-badge {
+            background-color: #e2e8f0; /* slate-200 */
+            color: #475569; /* slate-600 */
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-left: 8px;
+        }
 
+        /* --- ESTILOS DO FILTRO DE TAGS POPUP --- */
+        #filter-popup {
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+        }
+        #filter-popup.hidden {
+            transform: translateY(-10px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .filter-tag-option {
+            transition: background-color 0.2s;
+        }
+        .filter-tag-option:hover {
+            background-color: #f1f5f9; /* slate-100 */
+        }
 
         /* --- OUTROS ESTILOS --- */
         .kanban-card { user-select: none; }
@@ -125,23 +147,43 @@
     <!-- Aplicação Principal -->
     <div id="crm-app" class="hidden h-full flex flex-col">
         <header class="bg-white p-4 flex flex-wrap gap-4 justify-between items-center border-b border-slate-200 flex-shrink-0">
+            <!-- Logo e Título -->
             <div class="flex items-center space-x-3">
                 <img src="https://crm.prismeapp.com.br/web/binary/company_logo" alt="Logo Prisme Sales" class="h-8 w-auto" onerror="this.style.display='none'">
                 <h1 class="text-xl md:text-2xl font-bold text-gray-800">Seu CRM</h1>
             </div>
-            <div class="w-full md:w-auto md:flex-1 flex justify-center px-0 md:px-4">
-                <div class="relative w-full max-w-md">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-search text-gray-400"></i>
+            
+            <!-- Controles Centrais (Pesquisa e Filtro) -->
+            <div class="w-full md:w-auto md:flex-1 flex justify-center px-0 md:px-4 order-3 md:order-2">
+                <div class="flex items-center gap-2 w-full max-w-lg">
+                    <!-- Filtro de Tags -->
+                    <div id="filter-container" class="relative flex-shrink-0">
+                         <button id="filter-trigger-btn" data-active-tag-id="" class="flex items-center justify-center w-full px-4 py-2 border border-gray-300 rounded-full bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                            <span id="filter-btn-text">TODOS</span>
+                            <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
+                         </button>
+                         <div id="filter-popup" class="hidden absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                             <div id="filter-options-container" class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                 <!-- Opções de filtro serão inseridas aqui -->
+                             </div>
+                         </div>
                     </div>
-                    <input type="search" id="search-input" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400" placeholder="Pesquisar por empresa...">
+                    <!-- Barra de Pesquisa -->
+                    <div class="relative flex-grow">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="search" id="search-input" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400" placeholder="Pesquisar por empresa...">
+                    </div>
                 </div>
             </div>
-            <div class="hidden md:flex items-center space-x-4 justify-end">
+
+            <!-- Controles do Usuário -->
+            <div class="flex items-center space-x-4 justify-end order-2 md:order-3">
                 <button id="install-pwa-header-button" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full" title="Instalar App">
                     <i class="fas fa-download"></i>
                 </button>
-                <div id="user-info" class="text-right"></div>
+                <div id="user-info" class="text-right hidden md:block"></div>
                 <button id="logout-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-full" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
@@ -171,8 +213,8 @@
     <script>
         // --- CONFIGURAÇÃO E VARIÁVEIS GLOBAIS ---
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxR0sTr_AXocdDTGBRrQPYA1DHoiA6JNUZcyjvhWl_SymcG5leJxbBC6gq5-jzIyP3bQA/exec';
-        const CARDS_TO_SHOW_INITIAL = 30; // Número de cards a carregar inicialmente
-        const CARDS_TO_LOAD_MORE = 15;   // Número de cards a carregar ao rolar
+        const CARDS_TO_SHOW_INITIAL = 30;
+        const CARDS_TO_LOAD_MORE = 15;
 
         const loginScreen = document.getElementById('login-screen');
         const loadingScreen = document.getElementById('loading-screen');
@@ -191,6 +233,7 @@
         let quillEditor = null;
         let currentUser = null;
         let deferredPrompt;
+        let activeTagId = null;
 
         // --- FUNÇÕES DE UTILIDADE ---
         function jsonpRequest(url, callback) {
@@ -214,7 +257,7 @@
             }, 2000);
         }
 
-        // --- LÓGICA DE CONFIRMAÇÃO (SUBSTITUI O window.confirm) ---
+        // --- LÓGICA DE CONFIRMAÇÃO ---
         function showConfirmationModal(message, onConfirm) {
             const confirmationModal = document.getElementById('confirmation-modal');
             const messageEl = document.getElementById('confirmation-message');
@@ -232,11 +275,9 @@
                 hideConfirmationModal();
             };
             
-            // Remove eventuais listeners antigos para evitar chamadas duplicadas
             confirmBtn.replaceWith(confirmBtn.cloneNode(true));
             cancelBtn.replaceWith(cancelBtn.cloneNode(true));
 
-            // Adiciona os novos listeners
             document.getElementById('confirm-action-btn').addEventListener('click', confirmHandler);
             document.getElementById('confirm-cancel-btn').addEventListener('click', cancelHandler);
 
@@ -296,19 +337,113 @@
                     return;
                 }
                 appData = data;
-                renderBoard();
+                setupFilterLogic();
+                applyFiltersAndRender();
             });
         }
 
-        // --- RENDERIZAÇÃO DO QUADRO KANBAN E CARDS (COM LAZY LOAD) ---
-        function renderBoard(clientList = appData.clients) {
+        // --- LÓGICA DE FILTRAGEM E RENDERIZAÇÃO ---
+        function applyFiltersAndRender() {
+            let filteredClients = appData.clients;
+
+            if (activeTagId) {
+                const clientIdsWithTag = appData.clientTags
+                    .filter(ct => ct.ID_Tag === activeTagId)
+                    .map(ct => ct.ID_Cliente);
+                
+                filteredClients = appData.clients.filter(client => clientIdsWithTag.includes(client.ID_Cliente));
+            }
+
+            const searchTerm = searchInput.value.trim().toLowerCase();
+            if (searchTerm.length >= 3) {
+                filteredClients = filteredClients.filter(client => 
+                    client.NomeEmpresa.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            renderBoard(filteredClients);
+        }
+
+        function setupFilterLogic() {
+            const filterContainer = document.getElementById('filter-container');
+            const triggerBtn = document.getElementById('filter-trigger-btn');
+            const popup = document.getElementById('filter-popup');
+            const optionsContainer = document.getElementById('filter-options-container');
+            const btnText = document.getElementById('filter-btn-text');
+
+            optionsContainer.innerHTML = ''; // Limpa opções antigas
+
+            // Popula as opções do popup
+            if (appData.tags) {
+                appData.tags.forEach(tag => {
+                    const option = document.createElement('a');
+                    option.href = '#';
+                    option.className = 'filter-tag-option text-gray-700 block px-4 py-2 text-sm';
+                    option.dataset.tagId = tag.ID_Tag;
+                    option.dataset.tagName = tag.NomeTag;
+                    option.dataset.tagColor = tag.Cor;
+                    
+                    option.innerHTML = `
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 rounded-full mr-3" style="background-color: ${tag.Cor};"></span>
+                            <span>${tag.NomeTag}</span>
+                        </div>
+                    `;
+
+                    option.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const target = e.currentTarget;
+                        activeTagId = target.dataset.tagId;
+
+                        // Atualiza o botão principal
+                        btnText.textContent = target.dataset.tagName;
+                        triggerBtn.style.backgroundColor = `${target.dataset.tagColor}20`;
+                        triggerBtn.style.color = target.dataset.tagColor;
+                        triggerBtn.style.borderColor = target.dataset.tagColor;
+                        triggerBtn.dataset.activeTagId = activeTagId;
+
+                        popup.classList.add('hidden');
+                        applyFiltersAndRender();
+                    });
+                    optionsContainer.appendChild(option);
+                });
+            }
+
+            // Lógica de clique no botão principal
+            triggerBtn.addEventListener('click', () => {
+                if (triggerBtn.dataset.activeTagId) {
+                    // Se uma tag está ativa, reseta o filtro
+                    activeTagId = null;
+                    triggerBtn.dataset.activeTagId = '';
+                    btnText.textContent = 'TODOS';
+                    triggerBtn.style.backgroundColor = 'white';
+                    triggerBtn.style.color = '#374151'; // text-gray-700
+                    triggerBtn.style.borderColor = '#D1D5DB'; // border-gray-300
+                    applyFiltersAndRender();
+                } else {
+                    // Se nenhuma tag está ativa, abre/fecha o popup
+                    popup.classList.toggle('hidden');
+                }
+            });
+
+            // Fecha o popup se clicar fora
+            document.addEventListener('click', (e) => {
+                if (!filterContainer.contains(e.target)) {
+                    popup.classList.add('hidden');
+                }
+            });
+        }
+
+        searchInput.addEventListener('input', applyFiltersAndRender);
+
+        // --- RENDERIZAÇÃO DO QUADRO KANBAN ---
+        function renderBoard(clientList = []) {
             kanbanBoard.innerHTML = '';
             appData.statuses.sort((a, b) => a.Ordem - b.Ordem).forEach(status => {
                 const column = document.createElement('div');
                 column.className = 'kanban-column bg-slate-100 rounded-lg p-3 w-[90vw] md:w-80 flex-shrink-0 transition-all duration-300 snap-center';
                 const clientsInStatus = clientList.filter(c => c.Status === status.NomeStatus);
                 
-                // Pega apenas os cards iniciais para renderizar
                 const initialClients = clientsInStatus.slice(0, CARDS_TO_SHOW_INITIAL);
 
                 column.innerHTML = `
@@ -324,12 +459,10 @@
                 
                 const cardsContainer = column.querySelector('.kanban-cards');
                 
-                // Renderiza os cards iniciais
                 initialClients.forEach(client => cardsContainer.appendChild(createClientCard(client)));
                 
                 kanbanBoard.appendChild(column);
 
-                // Adiciona o listener de scroll para lazy loading se houver mais cards
                 if (clientsInStatus.length > CARDS_TO_SHOW_INITIAL) {
                     attachLazyLoad(cardsContainer, clientsInStatus);
                 }
@@ -340,43 +473,20 @@
 
         function attachLazyLoad(container, allClients) {
             let renderedCount = container.children.length;
-
             container.addEventListener('scroll', () => {
-                // Previne múltiplos carregamentos
                 if (container.dataset.loading === 'true') return;
-
-                // Verifica se chegou ao fim do scroll (com uma margem)
                 if (container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
                     if (renderedCount < allClients.length) {
                         container.dataset.loading = 'true';
-                        
                         const nextBatch = allClients.slice(renderedCount, renderedCount + CARDS_TO_LOAD_MORE);
-                        nextBatch.forEach(client => {
-                            container.appendChild(createClientCard(client));
-                        });
+                        nextBatch.forEach(client => container.appendChild(createClientCard(client)));
                         renderedCount += nextBatch.length;
-
-                        // Libera o lock após um pequeno delay para o DOM atualizar
-                        setTimeout(() => {
-                           container.dataset.loading = 'false';
-                        }, 100);
+                        setTimeout(() => { container.dataset.loading = 'false'; }, 100);
                     }
                 }
             });
         }
         
-        searchInput.addEventListener('input', () => {
-            const searchTerm = searchInput.value.trim().toLowerCase();
-            if (searchTerm.length >= 3) {
-                const filteredClients = appData.clients.filter(client => 
-                    client.NomeEmpresa.toLowerCase().includes(searchTerm)
-                );
-                renderBoard(filteredClients);
-            } else if (searchTerm.length === 0) {
-                renderBoard(appData.clients);
-            }
-        });
-
         function initializeColumnControls() {
             document.querySelectorAll('.collapse-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => { e.stopPropagation(); btn.closest('.kanban-column').classList.toggle('collapsed'); });
@@ -392,10 +502,8 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             dueDate.setHours(23, 59, 59, 999);
-
             const diffTime = dueDate.getTime() - today.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
             if (diffDays < 0) return { text: 'Atrasado', colorClass: 'text-red-500 font-semibold', pulse: true };
             if (diffDays === 0) return { text: 'Hoje', colorClass: 'text-red-500 font-semibold', pulse: true };
             if (diffDays <= 3) return { text: `Faltam ${diffDays} dias`, colorClass: 'text-red-500 font-semibold', pulse: true };
@@ -472,109 +580,52 @@
             return card;
         }
         
-        // --- INÍCIO: Lógica do PWA e Inicialização da Aplicação ---
+        // --- Lógica do PWA ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Configuração do Manifesto
             const manifest = {
-                "name": "Prisme Sales - CRM",
-                "short_name": "Prisme CRM",
-                "start_url": ".",
-                "display": "standalone",
-                "background_color": "#f8fafc",
-                "theme_color": "#2fc36a",
-                "description": "Um CRM simples e poderoso para gestão de clientes.",
-                "icons": [
-                    {
-                        "src": "https://nattanlima.github.io/meu-crm-pwa/icons/icon-192-192.png",
-                        "sizes": "192x192",
-                        "type": "image/png"
-                    },
-                    {
-                        "src": "https://nattanlima.github.io/meu-crm-pwa/icons/icon-512-512.png",
-                        "sizes": "512x512",
-                        "type": "image/png"
-                    }
-                ]
+                "name": "Prisme Sales - CRM", "short_name": "Prisme CRM", "start_url": ".", "display": "standalone",
+                "background_color": "#f8fafc", "theme_color": "#2fc36a", "description": "Um CRM simples e poderoso para gestão de clientes.",
+                "icons": [{"src": "https://nattanlima.github.io/meu-crm-pwa/icons/icon-192-192.png", "sizes": "192x192", "type": "image/png"},
+                          {"src": "https://nattanlima.github.io/meu-crm-pwa/icons/icon-512-512.png", "sizes": "512x512", "type": "image/png"}]
             };
             const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
             const manifestUrl = URL.createObjectURL(manifestBlob);
             document.getElementById('manifest').setAttribute('href', manifestUrl);
 
-            // Registro do Service Worker
             if ('serviceWorker' in navigator) {
-                const swContent = `
-                    const CACHE_NAME = 'prisme-crm-cache-v1';
-                    const urlsToCache = [
-                        '.', 'https://cdn.tailwindcss.com', 'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js',
-                        'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css', 'https://cdn.quilljs.com/1.3.6/quill.snow.css',
-                        'https://cdn.quilljs.com/1.3.6/quill.min.js', 'https://crm.prismeapp.com.br/web/binary/company_logo'
-                    ];
-                    self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache))));
-                    self.addEventListener('fetch', e => {
-                        if (e.request.url.startsWith('https://script.google.com')) return fetch(e.request);
-                        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
-                    });
-                `;
+                const swContent = `const CACHE_NAME = 'prisme-crm-cache-v1'; const urlsToCache = ['.', 'https://cdn.tailwindcss.com', 'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css', 'https://cdn.quilljs.com/1.3.6/quill.snow.css', 'https://cdn.quilljs.com/1.3.6/quill.min.js', 'https://crm.prismeapp.com.br/web/binary/company_logo']; self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache)))); self.addEventListener('fetch', e => { if (e.request.url.startsWith('https://script.google.com')) return fetch(e.request); e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))); });`;
                 const swBlob = new Blob([swContent], { type: 'application/javascript' });
                 const swUrl = URL.createObjectURL(swBlob);
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register(swUrl)
-                        .then(reg => console.log('ServiceWorker registrado:', reg.scope))
-                        .catch(err => console.log('Falha no registro do ServiceWorker:', err));
+                    navigator.serviceWorker.register(swUrl).then(reg => console.log('ServiceWorker registrado:', reg.scope)).catch(err => console.log('Falha no registro do ServiceWorker:', err));
                 });
             }
 
-            // Lógica de inicialização principal
             const savedUser = localStorage.getItem('crmUser');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                showApp(true);
-            } else {
-                showLogin();
-            }
-
-            clientModal.addEventListener('click', (e) => {
-                if (e.target === clientModal) hideClientModal();
-            });
-
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && !clientModal.classList.contains('hidden')) hideClientModal();
-            });
+            if (savedUser) { currentUser = JSON.parse(savedUser); showApp(true); } else { showLogin(); }
+            clientModal.addEventListener('click', (e) => { if (e.target === clientModal) hideClientModal(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !clientModal.classList.contains('hidden')) hideClientModal(); });
         });
 
         window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
+            e.preventDefault(); deferredPrompt = e;
             const installButtonLogin = document.getElementById('install-pwa-login-button');
             const installButtonHeader = document.getElementById('install-pwa-header-button');
-            
-            const showInstallButtons = () => {
-                if (installButtonLogin) installButtonLogin.classList.remove('hidden');
-                if (installButtonHeader) installButtonHeader.classList.remove('hidden');
-            };
-
+            const showInstallButtons = () => { if (installButtonLogin) installButtonLogin.classList.remove('hidden'); if (installButtonHeader) installButtonHeader.classList.remove('hidden'); };
             const installHandler = () => {
-                if (installButtonLogin) installButtonLogin.classList.add('hidden');
-                if (installButtonHeader) installButtonHeader.classList.add('hidden');
-                
+                if (installButtonLogin) installButtonLogin.classList.add('hidden'); if (installButtonHeader) installButtonHeader.classList.add('hidden');
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('Usuário instalou o PWA');
-                    } else {
-                        console.log('Usuário recusou a instalação do PWA');
-                    }
+                    console.log(choiceResult.outcome === 'accepted' ? 'Usuário instalou o PWA' : 'Usuário recusou a instalação do PWA');
                     deferredPrompt = null;
                 });
             };
-
             showInstallButtons();
             if (installButtonLogin) installButtonLogin.addEventListener('click', installHandler);
             if (installButtonHeader) installButtonHeader.addEventListener('click', installHandler);
         });
-        // --- FIM: Lógica do PWA e Inicialização da Aplicação ---
         
-        // --- FUNÇÕES DE LÓGICA (MODAL, TAREFAS, ETC.) ---
+        // --- FUNÇÕES DE LÓGICA (MODAL, TAREFAS, TICKETS, ETC.) ---
         
         function calculateProgress(clientId) {
             const tasks = appData.tasks ? appData.tasks.filter(p => p.ID_Cliente === clientId) : [];
@@ -586,31 +637,18 @@
         function initializeDragAndDrop() {
             document.querySelectorAll('.kanban-cards').forEach(column => {
                 new Sortable(column, {
-                    group: 'kanban',
-                    animation: 150,
-                    delay: 200, 
-                    delayOnTouchOnly: true, 
+                    group: 'kanban', animation: 150, delay: 200, delayOnTouchOnly: true, 
                     onEnd: (evt) => {
-                        const { item, to, from } = evt;
-                        const clientId = item.dataset.clientId;
-                        const newStatus = to.dataset.statusName;
-                        
-                        const client = appData.clients.find(c => c.ID_Cliente.toString() === clientId);
-                        if (client) {
-                            client.Status = newStatus;
-                        }
-
+                        const { item, to, from } = evt; const clientId = item.dataset.clientId; const newStatus = to.dataset.statusName;
+                        const client = appData.clients.find(c => c.ID_Cliente.toString() === clientId); if (client) { client.Status = newStatus; }
                         const updateUrl = `${SCRIPT_URL}?action=updateClientStatus&clientId=${encodeURIComponent(clientId)}&newStatus=${encodeURIComponent(newStatus)}`;
                         jsonpRequest(updateUrl, (err, data) => {
                             if (err || !data.success) {
                                 showToast('Erro ao atualizar status.');
-                                const client = appData.clients.find(c => c.ID_Cliente.toString() === clientId);
-                                if (client) {
-                                    client.Status = from.dataset.statusName;
-                                }
+                                const client = appData.clients.find(c => c.ID_Cliente.toString() === clientId); if (client) { client.Status = from.dataset.statusName; }
                                 from.appendChild(item);
                             }
-                            renderBoard();
+                            applyFiltersAndRender();
                         });
                     }
                 });
@@ -618,77 +656,17 @@
         }
 
         function showClientModal(clientId) {
-            const client = appData.clients.find(c => c.ID_Cliente === clientId);
-            if (!client) return;
-
-            modalContent.innerHTML = '';
-            modalContent.appendChild(loaderTemplate.content.cloneNode(true));
-            clientModal.classList.remove('hidden');
-            setTimeout(() => modalContent.classList.remove('scale-95', 'opacity-0'), 10);
-
-            modalContent.innerHTML = `
-                <div class="p-6 border-b flex-shrink-0">
-                    <div class="flex justify-between items-start">
-                        <div><h2 class="text-3xl font-bold text-gray-800">${client.NomeEmpresa}</h2></div>
-                        <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
-                    </div>
-                </div>
-                <div class="border-b border-gray-200 flex-shrink-0">
-                    <nav id="modal-tabs" class="flex space-x-4 px-6 -mb-px overflow-x-auto">
-                        <button data-tab="details" class="tab-button active flex-shrink-0">Detalhes</button>
-                        <button data-tab="tasks" class="tab-button flex-shrink-0">Tarefas</button>
-                        <button data-tab="tickets" class="tab-button flex-shrink-0">Tickets</button>
-                    </nav>
-                </div>
-                <div class="p-6 overflow-y-auto flex-grow">
-                    <div id="tab-content-details" class="tab-content active">
-                        <div id="modal-form" data-client-id="${clientId}">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                                <div><label class="text-sm font-medium text-gray-700">Nome da Empresa</label><input type="text" id="modal-NomeEmpresa" value="${client.NomeEmpresa || ''}" class="form-input"></div>
-                                <div><label class="text-sm font-medium text-gray-700">CNPJ</label><input type="text" id="modal-CNPJ" value="${client.CNPJ || ''}" class="form-input"></div>
-                                <div><label class="text-sm font-medium text-gray-700">Nome do Responsável</label><input type="text" id="modal-NomeResponsavel" value="${client.NomeResponsavel || ''}" class="form-input"></div>
-                                <div><label class="text-sm font-medium text-gray-700">WhatsApp</label><input type="text" id="modal-WhatsApp" value="${client.WhatsApp || ''}" class="form-input"></div>
-                                <div><label class="text-sm font-medium text-gray-700">E-mail Financeiro</label><input type="text" id="modal-EmailFinanceiro" value="${client.EmailFinanceiro || ''}" class="form-input"></div>
-                                <div><label class="text-sm font-medium text-gray-700">Telefone do Dono</label><input type="text" id="modal-TelefoneDono" value="${client.TelefoneDono || ''}" class="form-input"></div>
-                                <div class="md:col-span-2"><label class="text-sm font-medium text-gray-700">Link do Grupo WhatsApp</label><input type="text" id="modal-LinkGrupoWhatsApp" value="${client.LinkGrupoWhatsApp || ''}" class="form-input"></div>
-                                <div><label class="text-sm font-medium text-gray-700">Valor do Contrato</label><input type="text" id="modal-ValorContrato" value="${client.ValorContrato || ''}" class="form-input" placeholder="R$ 0,00"></div>
-                                <div class="md:col-span-2"><label class="text-sm font-medium text-gray-700">Anotações</label><textarea id="modal-Anotacoes" rows="4" class="form-input">${client.Anotacoes || ''}</textarea></div>
-                            </div>
-                            <div class="mt-8 pt-5 border-t flex justify-end items-center gap-3">
-                                <span id="save-status" class="text-sm text-green-600"></span>
-                                <button id="save-client-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white font-bold py-2 px-4 rounded-full flex items-center"><i class="fas fa-save mr-2"></i>Salvar Alterações</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="tab-content-tasks" class="tab-content">
-                        <div class="flex justify-between items-center mb-2">
-                            <h4 class="font-bold text-gray-600">Tarefas do Projeto</h4>
-                            <button id="add-main-task-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white text-sm font-bold py-1 px-3 rounded-full flex items-center"><i class="fas fa-plus mr-2"></i>Nova Tarefa</button>
-                        </div>
-                        <div id="task-list-container" class="bg-slate-50 p-4 rounded-lg"></div>
-                        <div id="task-editor-container" class="mt-4 border-t pt-4 hidden"></div>
-                    </div>
-                    <div id="tab-content-tickets" class="tab-content">
-                        <div class="flex justify-between items-center mb-2">
-                            <h4 class="font-bold text-gray-600">Tickets/Chamados</h4>
-                            <button id="add-main-ticket-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white text-sm font-bold py-1 px-3 rounded-full flex items-center"><i class="fas fa-plus mr-2"></i>Novo Ticket</button>
-                        </div>
-                        <div id="ticket-list-container" class="bg-slate-50 p-4 rounded-lg"></div>
-                        <div id="ticket-editor-container" class="mt-4 border-t pt-4 hidden"></div>
-                    </div>
-                </div>`;
-            const tabs = document.querySelectorAll('.tab-button');
-            const contents = document.querySelectorAll('.tab-content');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    contents.forEach(c => c.classList.remove('active'));
-                    tab.classList.add('active');
-                    document.getElementById(`tab-content-${tab.dataset.tab}`).classList.add('active');
-                });
-            });
-            renderTaskList(clientId);
-            renderTicketList(clientId);
+            const client = appData.clients.find(c => c.ID_Cliente === clientId); if (!client) return;
+            const uncompletedTasksCount = appData.tasks ? appData.tasks.filter(t => t.ID_Cliente === clientId && !t.Concluido).length : 0;
+            const uncompletedTicketsCount = appData.tickets ? appData.tickets.filter(t => t.ID_Cliente === clientId && !t.Concluido).length : 0;
+            const tasksBadgeHtml = uncompletedTasksCount > 0 ? `<span class="tab-badge">${uncompletedTasksCount}</span>` : '';
+            const ticketsBadgeHtml = uncompletedTicketsCount > 0 ? `<span class="tab-badge">${uncompletedTicketsCount}</span>` : '';
+            modalContent.innerHTML = ''; modalContent.appendChild(loaderTemplate.content.cloneNode(true));
+            clientModal.classList.remove('hidden'); setTimeout(() => modalContent.classList.remove('scale-95', 'opacity-0'), 10);
+            modalContent.innerHTML = `<div class="p-6 border-b flex-shrink-0"><div class="flex justify-between items-start"><div><h2 class="text-3xl font-bold text-gray-800">${client.NomeEmpresa}</h2></div><button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button></div></div><div class="border-b border-gray-200 flex-shrink-0"><nav id="modal-tabs" class="flex space-x-4 px-6 -mb-px overflow-x-auto"><button data-tab="details" class="tab-button active flex-shrink-0">Detalhes</button><button data-tab="tasks" class="tab-button flex-shrink-0 flex items-center">Tarefas ${tasksBadgeHtml}</button><button data-tab="tickets" class="tab-button flex-shrink-0 flex items-center">Tickets ${ticketsBadgeHtml}</button></nav></div><div class="p-6 overflow-y-auto flex-grow"><div id="tab-content-details" class="tab-content active"><div id="modal-form" data-client-id="${clientId}"><div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><div><label class="text-sm font-medium text-gray-700">Nome da Empresa</label><input type="text" id="modal-NomeEmpresa" value="${client.NomeEmpresa || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">CNPJ</label><input type="text" id="modal-CNPJ" value="${client.CNPJ || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">Nome do Responsável</label><input type="text" id="modal-NomeResponsavel" value="${client.NomeResponsavel || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">WhatsApp</label><input type="text" id="modal-WhatsApp" value="${client.WhatsApp || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">E-mail Financeiro</label><input type="text" id="modal-EmailFinanceiro" value="${client.EmailFinanceiro || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">Telefone do Dono</label><input type="text" id="modal-TelefoneDono" value="${client.TelefoneDono || ''}" class="form-input"></div><div class="md:col-span-2"><label class="text-sm font-medium text-gray-700">Link do Grupo WhatsApp</label><input type="text" id="modal-LinkGrupoWhatsApp" value="${client.LinkGrupoWhatsApp || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">Valor do Contrato</label><input type="text" id="modal-ValorContrato" value="${client.ValorContrato || ''}" class="form-input" placeholder="R$ 0,00"></div><div class="md:col-span-2"><label class="text-sm font-medium text-gray-700">Anotações</label><textarea id="modal-Anotacoes" rows="4" class="form-input">${client.Anotacoes || ''}</textarea></div></div><div class="mt-8 pt-5 border-t flex justify-end items-center gap-3"><span id="save-status" class="text-sm text-green-600"></span><button id="save-client-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white font-bold py-2 px-4 rounded-full flex items-center"><i class="fas fa-save mr-2"></i>Salvar Alterações</button></div></div></div><div id="tab-content-tasks" class="tab-content"><div class="flex justify-between items-center mb-2"><h4 class="font-bold text-gray-600">Tarefas do Projeto</h4><button id="add-main-task-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white text-sm font-bold py-1 px-3 rounded-full flex items-center"><i class="fas fa-plus mr-2"></i>Nova Tarefa</button></div><div id="task-list-container" class="bg-slate-50 p-4 rounded-lg"></div><div id="task-editor-container" class="mt-4 border-t pt-4 hidden"></div></div><div id="tab-content-tickets" class="tab-content"><div class="flex justify-between items-center mb-2"><h4 class="font-bold text-gray-600">Tickets/Chamados</h4><button id="add-main-ticket-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white text-sm font-bold py-1 px-3 rounded-full flex items-center"><i class="fas fa-plus mr-2"></i>Novo Ticket</button></div><div id="ticket-list-container" class="bg-slate-50 p-4 rounded-lg"></div><div id="ticket-editor-container" class="mt-4 border-t pt-4 hidden"></div></div></div>`;
+            const tabs = document.querySelectorAll('.tab-button'); const contents = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => { tab.addEventListener('click', () => { tabs.forEach(t => t.classList.remove('active')); contents.forEach(c => c.classList.remove('active')); tab.classList.add('active'); document.getElementById(`tab-content-${tab.dataset.tab}`).classList.add('active'); }); });
+            renderTaskList(clientId); renderTicketList(clientId);
             document.getElementById('close-modal-btn').addEventListener('click', hideClientModal);
             document.getElementById('save-client-btn').addEventListener('click', () => handleSaveClient(clientId));
             document.getElementById('add-main-task-btn').addEventListener('click', () => showNewTaskForm(clientId, '0'));
@@ -697,50 +675,19 @@
 
         function hideClientModal() {
             modalContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                clientModal.classList.add('hidden');
-                renderBoard();
-            }, 300);
+            setTimeout(() => { clientModal.classList.add('hidden'); applyFiltersAndRender(); }, 300);
         }
 
         function renderTaskList(clientId) {
-            const container = document.getElementById('task-list-container');
-            const clientTasks = appData.tasks ? appData.tasks.filter(t => t.ID_Cliente === clientId) : [];
-
+            const container = document.getElementById('task-list-container'); const clientTasks = appData.tasks ? appData.tasks.filter(t => t.ID_Cliente === clientId) : [];
             function buildTaskTree(parentId) {
-                const tasks = clientTasks.filter(task => {
-                    if (parentId === '0') return task.Parent_ID_Tarefa == '0' || !task.Parent_ID_Tarefa;
-                    return task.Parent_ID_Tarefa === parentId;
-                });
-                if (tasks.length === 0) return '';
-                let html = `<div class="${parentId !== '0' ? 'ml-6 border-l-2 border-gray-200 pl-4' : ''}">`;
+                const tasks = clientTasks.filter(task => { if (parentId === '0') return task.Parent_ID_Tarefa == '0' || !task.Parent_ID_Tarefa; return task.Parent_ID_Tarefa === parentId; });
+                if (tasks.length === 0) return ''; let html = `<div class="${parentId !== '0' ? 'ml-6 border-l-2 border-gray-200 pl-4' : ''}">`;
                 tasks.sort((a,b) => a.Ordem - b.Ordem).forEach(task => {
-                    const responsibleUser = appData.users.find(u => u.ID_Usuario === task.Responsavel_ID);
-                    const dueDate = task.PrazoFinal ? new Date(task.PrazoFinal) : null;
-                    const today = new Date();
-                    today.setHours(0,0,0,0);
-                    const isOverdue = dueDate && dueDate < today;
-                    html += `
-                        <div class="task-item group flex items-center justify-between p-2 hover:bg-gray-100 rounded-md">
-                            <div class="flex items-center flex-grow min-w-0">
-                                <input type="checkbox" data-task-id="${task.ID_Tarefa}" class="task-checkbox h-4 w-4 mr-3 flex-shrink-0" ${task.Concluido ? 'checked' : ''}>
-                                <div class="truncate">
-                                    <span class="task-title ${task.Concluido ? 'line-through text-gray-400' : ''}">${task.TituloTarefa}</span>
-                                    ${dueDate ? `<span class="ml-2 text-xs ${isOverdue ? 'text-red-500' : 'text-gray-500'}"><i class="far fa-calendar-alt mr-1"></i>${dueDate.toLocaleDateString('pt-BR')}</span>` : ''}
-                                </div>
-                                ${responsibleUser ? `<span class="ml-2 text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 flex-shrink-0">${responsibleUser.NomeUsuario}</span>` : ''}
-                            </div>
-                            <div class="task-controls opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                <button title="Adicionar Subtarefa" class="add-subtask-btn text-gray-400 hover:text-green-500 p-1" data-parent-id="${task.ID_Tarefa}"><i class="fas fa-plus-circle"></i></button>
-                                <button title="Editar Tarefa" class="edit-task-btn text-gray-400 hover:text-blue-500 p-1" data-task-id="${task.ID_Tarefa}"><i class="fas fa-pencil-alt"></i></button>
-                                <button title="Apagar Tarefa" class="delete-task-btn text-gray-400 hover:text-red-500 p-1" data-task-id="${task.ID_Tarefa}"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>
-                    `;
+                    const responsibleUser = appData.users.find(u => u.ID_Usuario === task.Responsavel_ID); const dueDate = task.PrazoFinal ? new Date(task.PrazoFinal) : null; const today = new Date(); today.setHours(0,0,0,0); const isOverdue = dueDate && dueDate < today;
+                    html += `<div class="task-item group flex items-center justify-between p-2 hover:bg-gray-100 rounded-md"><div class="flex items-center flex-grow min-w-0"><input type="checkbox" data-task-id="${task.ID_Tarefa}" class="task-checkbox h-4 w-4 mr-3 flex-shrink-0" ${task.Concluido ? 'checked' : ''}><div class="truncate"><span class="task-title ${task.Concluido ? 'line-through text-gray-400' : ''}">${task.TituloTarefa}</span>${dueDate ? `<span class="ml-2 text-xs ${isOverdue ? 'text-red-500' : 'text-gray-500'}"><i class="far fa-calendar-alt mr-1"></i>${dueDate.toLocaleDateString('pt-BR')}</span>` : ''}</div>${responsibleUser ? `<span class="ml-2 text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 flex-shrink-0">${responsibleUser.NomeUsuario}</span>` : ''}</div><div class="task-controls opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><button title="Adicionar Subtarefa" class="add-subtask-btn text-gray-400 hover:text-green-500 p-1" data-parent-id="${task.ID_Tarefa}"><i class="fas fa-plus-circle"></i></button><button title="Editar Tarefa" class="edit-task-btn text-gray-400 hover:text-blue-500 p-1" data-task-id="${task.ID_Tarefa}"><i class="fas fa-pencil-alt"></i></button><button title="Apagar Tarefa" class="delete-task-btn text-gray-400 hover:text-red-500 p-1" data-task-id="${task.ID_Tarefa}"><i class="fas fa-trash"></i></button></div></div>`;
                     html += buildTaskTree(task.ID_Tarefa);
-                });
-                html += `</div>`;
-                return html;
+                }); html += `</div>`; return html;
             }
             container.innerHTML = buildTaskTree('0') || '<p class="text-gray-500">Nenhuma tarefa criada para este cliente.</p>';
             container.querySelectorAll('.task-checkbox').forEach(cb => cb.addEventListener('change', (e) => handleToggleTask(e.target.dataset.taskId, e.target.checked)));
@@ -750,59 +697,20 @@
         }
 
         function showTaskEditor(taskId) {
-            const editorContainer = document.getElementById('task-editor-container');
-            const task = appData.tasks.find(t => t.ID_Tarefa === taskId);
-            if (!task) return;
+            const editorContainer = document.getElementById('task-editor-container'); const task = appData.tasks.find(t => t.ID_Tarefa === taskId); if (!task) return;
             const userOptions = appData.users.map(user => `<option value="${user.ID_Usuario}" ${task.Responsavel_ID === user.ID_Usuario ? 'selected' : ''}>${user.NomeUsuario}</option>`).join('');
             const dueDateValue = task.PrazoFinal ? new Date(task.PrazoFinal).toISOString().split('T')[0] : '';
-            editorContainer.innerHTML = `
-                <h5 class="font-bold text-lg mb-2">Editando Tarefa</h5>
-                <input type="text" id="editor-task-title" value="${task.TituloTarefa}" class="form-input w-full mb-2 text-lg font-semibold" placeholder="Título da Tarefa">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label class="text-sm font-medium text-gray-700">Responsável</label><select id="editor-task-responsible" class="form-input"><option value="">Ninguém</option>${userOptions}</select></div>
-                    <div>
-                        <label class="text-sm font-medium text-gray-700">Prazo Final</label>
-                        <input type="date" id="editor-task-due-date" value="${dueDateValue}" class="form-input">
-                        <div class="flex space-x-2 mt-2">
-                            <button class="suggestion-btn" data-days="3">+3 dias</button>
-                            <button class="suggestion-btn" data-days="7">+7 dias</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-4" id="quill-editor-task"></div>
-                <div class="flex justify-end mt-2">
-                    <button id="save-task-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white font-bold py-2 px-4 rounded-full">Salvar Tarefa</button>
-                </div>
-            `;
-            editorContainer.classList.remove('hidden');
-            quillEditor = new Quill('#quill-editor-task', { theme: 'snow' });
-            if (task.DescricaoDetalhada) quillEditor.root.innerHTML = task.DescricaoDetalhada;
-            editorContainer.querySelectorAll('.suggestion-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const daysToAdd = parseInt(btn.dataset.days);
-                    const dateInput = document.getElementById('editor-task-due-date');
-                    const newDate = new Date();
-                    newDate.setDate(newDate.getDate() + daysToAdd);
-                    dateInput.value = newDate.toISOString().split('T')[0];
-                });
-            });
+            editorContainer.innerHTML = `<h5 class="font-bold text-lg mb-2">Editando Tarefa</h5><input type="text" id="editor-task-title" value="${task.TituloTarefa}" class="form-input w-full mb-2 text-lg font-semibold" placeholder="Título da Tarefa"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="text-sm font-medium text-gray-700">Responsável</label><select id="editor-task-responsible" class="form-input"><option value="">Ninguém</option>${userOptions}</select></div><div><label class="text-sm font-medium text-gray-700">Prazo Final</label><input type="date" id="editor-task-due-date" value="${dueDateValue}" class="form-input"><div class="flex space-x-2 mt-2"><button class="suggestion-btn" data-days="3">+3 dias</button><button class="suggestion-btn" data-days="7">+7 dias</button></div></div></div><div class="mt-4" id="quill-editor-task"></div><div class="flex justify-end mt-2"><button id="save-task-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white font-bold py-2 px-4 rounded-full">Salvar Tarefa</button></div>`;
+            editorContainer.classList.remove('hidden'); quillEditor = new Quill('#quill-editor-task', { theme: 'snow' }); if (task.DescricaoDetalhada) quillEditor.root.innerHTML = task.DescricaoDetalhada;
+            editorContainer.querySelectorAll('.suggestion-btn').forEach(btn => { btn.addEventListener('click', () => { const daysToAdd = parseInt(btn.dataset.days); const dateInput = document.getElementById('editor-task-due-date'); const newDate = new Date(); newDate.setDate(newDate.getDate() + daysToAdd); dateInput.value = newDate.toISOString().split('T')[0]; }); });
             document.getElementById('save-task-btn').addEventListener('click', () => handleSaveTask(taskId));
         }
 
         function handleSaveTask(taskId) {
-            const title = document.getElementById('editor-task-title').value;
-            const description = quillEditor.root.innerHTML;
-            const responsibleId = document.getElementById('editor-task-responsible').value;
-            const dueDate = document.getElementById('editor-task-due-date').value;
-            const task = appData.tasks.find(t => t.ID_Tarefa === taskId);
-            const client = appData.clients.find(c => c.ID_Cliente === task.ID_Cliente);
-            task.TituloTarefa = title;
-            task.DescricaoDetalhada = description;
-            task.Responsavel_ID = responsibleId;
-            task.PrazoFinal = dueDate;
-            renderBoard();
-            showClientModal(client.ID_Cliente);
-            setTimeout(() => document.querySelector('button[data-tab="tasks"]').click(), 50);
+            const title = document.getElementById('editor-task-title').value; const description = quillEditor.root.innerHTML; const responsibleId = document.getElementById('editor-task-responsible').value; const dueDate = document.getElementById('editor-task-due-date').value;
+            const task = appData.tasks.find(t => t.ID_Tarefa === taskId); const client = appData.clients.find(c => c.ID_Cliente === task.ID_Cliente);
+            task.TituloTarefa = title; task.DescricaoDetalhada = description; task.Responsavel_ID = responsibleId; task.PrazoFinal = dueDate;
+            showClientModal(client.ID_Cliente); setTimeout(() => document.querySelector('button[data-tab="tasks"]').click(), 50);
             const url = `${SCRIPT_URL}?action=updateTask&ID_Tarefa=${taskId}&TituloTarefa=${encodeURIComponent(title)}&DescricaoDetalhada=${encodeURIComponent(description)}&Responsavel_ID=${encodeURIComponent(responsibleId)}&PrazoFinal=${encodeURIComponent(dueDate)}`;
             jsonpRequest(url, (err, data) => { if (err || !data.success) { showToast("Erro ao salvar a tarefa."); initializeApp(); } });
         }
@@ -812,161 +720,56 @@
             const targetContainer = parentId !== '0' ? document.querySelector(`.add-subtask-btn[data-parent-id="${parentId}"]`).closest('.task-item').parentNode : document.getElementById('task-list-container');
             const formHtml = `<form id="new-task-form" class="p-2"><input type="text" id="new-task-input" class="form-input w-full" placeholder="Escreva o título e prima Enter"></form>`;
             targetContainer.insertAdjacentHTML(parentId !== '0' ? 'beforeend' : 'afterbegin', formHtml);
-            const form = document.getElementById('new-task-form');
-            const input = document.getElementById('new-task-input');
-            input.focus();
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const title = input.value.trim();
-                if (title) { handleCreateTask(clientId, parentId, title); }
-                form.remove();
-            });
+            const form = document.getElementById('new-task-form'); const input = document.getElementById('new-task-input'); input.focus();
+            form.addEventListener('submit', (e) => { e.preventDefault(); const title = input.value.trim(); if (title) { handleCreateTask(clientId, parentId, title); } form.remove(); });
             input.addEventListener('blur', () => { setTimeout(() => { if (document.getElementById('new-task-form')) document.getElementById('new-task-form').remove(); }, 150); });
         }
 
         function handleCreateTask(clientId, parentId, title) {
-            let url = `${SCRIPT_URL}?action=createTask&ID_Cliente=${clientId}&TituloTarefa=${encodeURIComponent(title)}`;
-            if (parentId && parentId !== '0') url += `&Parent_ID_Tarefa=${parentId}`;
-            jsonpRequest(url, (err, data) => {
-                if (err || !data.success) { showToast("Erro ao criar a tarefa."); } 
-                else {
-                    appData.tasks.push(data.newTask);
-                    renderBoard();
-                    showClientModal(clientId);
-                    setTimeout(() => document.querySelector('button[data-tab="tasks"]').click(), 50);
-                }
-            });
+            let url = `${SCRIPT_URL}?action=createTask&ID_Cliente=${clientId}&TituloTarefa=${encodeURIComponent(title)}`; if (parentId && parentId !== '0') url += `&Parent_ID_Tarefa=${parentId}`;
+            jsonpRequest(url, (err, data) => { if (err || !data.success) { showToast("Erro ao criar a tarefa."); } else { appData.tasks.push(data.newTask); showClientModal(clientId); setTimeout(() => document.querySelector('button[data-tab="tasks"]').click(), 50); } });
         }
 
         function handleToggleTask(taskId, isCompleted) {
-            const task = appData.tasks.find(t => t.ID_Tarefa === taskId);
-            const originalState = task.Concluido;
-            task.Concluido = isCompleted;
-            renderBoard();
-            if(!clientModal.classList.contains('hidden')) { renderTaskList(task.ID_Cliente); }
+            const task = appData.tasks.find(t => t.ID_Tarefa === taskId); const originalState = task.Concluido; task.Concluido = isCompleted;
+            showClientModal(task.ID_Cliente); setTimeout(() => document.querySelector('button[data-tab="tasks"]').click(), 50);
             const url = `${SCRIPT_URL}?action=updateTask&ID_Tarefa=${taskId}&Concluido=${isCompleted}`;
-            jsonpRequest(url, (err, data) => {
-                if (err || !data.success) {
-                    showToast("Erro ao atualizar o status da tarefa.");
-                    task.Concluido = originalState;
-                    renderBoard();
-                    if(!clientModal.classList.contains('hidden')) { renderTaskList(task.ID_Cliente); }
-                }
-            });
+            jsonpRequest(url, (err, data) => { if (err || !data.success) { showToast("Erro ao atualizar o status da tarefa."); task.Concluido = originalState; showClientModal(task.ID_Cliente); setTimeout(() => document.querySelector('button[data-tab="tasks"]').click(), 50); } });
         }
 
         function handleDeleteTask(taskId) {
             showConfirmationModal("Tem a certeza de que quer apagar esta tarefa e todas as suas subtarefas?", () => {
-                const task = appData.tasks.find(t => t.ID_Tarefa === taskId);
-                const originalTasks = [...appData.tasks];
-                const tasksToRemove = [taskId];
-                let i = 0;
-                while (i < tasksToRemove.length) {
-                    const parentId = tasksToRemove[i];
-                    appData.tasks.filter(t => t.Parent_ID_Tarefa === parentId).forEach(child => tasksToRemove.push(child.ID_Tarefa));
-                    i++;
-                }
+                const task = appData.tasks.find(t => t.ID_Tarefa === taskId); const originalTasks = [...appData.tasks];
+                const tasksToRemove = [taskId]; let i = 0;
+                while (i < tasksToRemove.length) { const parentId = tasksToRemove[i]; appData.tasks.filter(t => t.Parent_ID_Tarefa === parentId).forEach(child => tasksToRemove.push(child.ID_Tarefa)); i++; }
                 appData.tasks = appData.tasks.filter(t => !tasksToRemove.includes(t.ID_Tarefa));
-                renderBoard();
-                showClientModal(task.ID_Cliente);
-                setTimeout(() => document.querySelector('button[data-tab="tasks"]').click(), 50);
+                showClientModal(task.ID_Cliente); setTimeout(() => document.querySelector('button[data-tab="tasks"]').click(), 50);
                 const url = `${SCRIPT_URL}?action=deleteTask&ID_Tarefa=${taskId}`;
-                jsonpRequest(url, (err, data) => {
-                    if (err || !data.success) {
-                        showToast("Erro ao apagar a tarefa.");
-                        appData.tasks = originalTasks;
-                        renderBoard();
-                        showClientModal(task.ID_Cliente);
-                        setTimeout(() => document.querySelector('button[data-tab="tasks"]').click(), 50);
-                    }
-                });
+                jsonpRequest(url, (err, data) => { if (err || !data.success) { showToast("Erro ao apagar a tarefa."); appData.tasks = originalTasks; showClientModal(task.ID_Cliente); setTimeout(() => document.querySelector('button[data-tab="tasks"]').click(), 50); } });
             });
         }
 
-        // --- NOVAS FUNÇÕES PARA TICKETS ---
+        // --- Lógica de Tickets ---
         function renderTicketList(clientId) {
-            const container = document.getElementById('ticket-list-container');
-            const allClientTickets = appData.tickets ? appData.tickets.filter(t => t.ID_Cliente === clientId) : [];
-
+            const container = document.getElementById('ticket-list-container'); const allClientTickets = appData.tickets ? appData.tickets.filter(t => t.ID_Cliente === clientId) : [];
             const generateTicketItemHtml = (ticket) => {
-                const responsibleUser = appData.users.find(u => u.ID_Usuario === ticket.Responsavel_ID);
-                const dueDate = ticket.PrazoFinal ? new Date(ticket.PrazoFinal) : null;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const isOverdue = dueDate && dueDate < today && !ticket.Concluido;
-                
-                return `
-                    <div class="task-item group flex items-center justify-between p-2 hover:bg-gray-100 rounded-md">
-                        <div class="flex items-center flex-grow min-w-0">
-                            <input type="checkbox" data-ticket-id="${ticket.ID_Ticket}" class="ticket-checkbox h-4 w-4 mr-3 flex-shrink-0" ${ticket.Concluido ? 'checked' : ''}>
-                            <div class="truncate">
-                                <span class="ticket-title ${ticket.Concluido ? 'line-through text-gray-400' : ''}">${ticket.TituloTicket}</span>
-                                ${dueDate ? `<span class="ml-2 text-xs ${isOverdue ? 'text-red-500 font-semibold' : 'text-gray-500'}"><i class="far fa-calendar-alt mr-1"></i>${dueDate.toLocaleDateString('pt-BR')}</span>` : ''}
-                            </div>
-                            ${responsibleUser ? `<span class="ml-2 text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 flex-shrink-0">${responsibleUser.NomeUsuario}</span>` : ''}
-                        </div>
-                        <div class="task-controls opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                            <button title="Adicionar Sub-ticket" class="add-subticket-btn text-gray-400 hover:text-green-500 p-1" data-parent-id="${ticket.ID_Ticket}"><i class="fas fa-plus-circle"></i></button>
-                            <button title="Editar Ticket" class="edit-ticket-btn text-gray-400 hover:text-blue-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-pencil-alt"></i></button>
-                            <button title="Apagar Ticket" class="delete-ticket-btn text-gray-400 hover:text-red-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                `;
+                const responsibleUser = appData.users.find(u => u.ID_Usuario === ticket.Responsavel_ID); const dueDate = ticket.PrazoFinal ? new Date(ticket.PrazoFinal) : null; const today = new Date(); today.setHours(0, 0, 0, 0); const isOverdue = dueDate && dueDate < today && !ticket.Concluido;
+                return `<div class="task-item group flex items-center justify-between p-2 hover:bg-gray-100 rounded-md"><div class="flex items-center flex-grow min-w-0"><input type="checkbox" data-ticket-id="${ticket.ID_Ticket}" class="ticket-checkbox h-4 w-4 mr-3 flex-shrink-0" ${ticket.Concluido ? 'checked' : ''}><div class="truncate"><span class="ticket-title ${ticket.Concluido ? 'line-through text-gray-400' : ''}">${ticket.TituloTicket}</span>${dueDate ? `<span class="ml-2 text-xs ${isOverdue ? 'text-red-500 font-semibold' : 'text-gray-500'}"><i class="far fa-calendar-alt mr-1"></i>${dueDate.toLocaleDateString('pt-BR')}</span>` : ''}</div>${responsibleUser ? `<span class="ml-2 text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 flex-shrink-0">${responsibleUser.NomeUsuario}</span>` : ''}</div><div class="task-controls opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><button title="Adicionar Sub-ticket" class="add-subticket-btn text-gray-400 hover:text-green-500 p-1" data-parent-id="${ticket.ID_Ticket}"><i class="fas fa-plus-circle"></i></button><button title="Editar Ticket" class="edit-ticket-btn text-gray-400 hover:text-blue-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-pencil-alt"></i></button><button title="Apagar Ticket" class="delete-ticket-btn text-gray-400 hover:text-red-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-trash"></i></button></div></div>`;
             };
-
             function buildTicketHtmlRecursive(parentId) {
-                let ticketsForLevel = allClientTickets.filter(ticket => {
-                    if (parentId === '0') return ticket.Parent_ID_Ticket == '0' || !ticket.Parent_ID_Ticket;
-                    return ticket.Parent_ID_Ticket === parentId;
-                });
-
-                if (ticketsForLevel.length === 0) return '';
-
-                let separatorHtml = '';
-
+                let ticketsForLevel = allClientTickets.filter(ticket => { if (parentId === '0') return ticket.Parent_ID_Ticket == '0' || !ticket.Parent_ID_Ticket; return ticket.Parent_ID_Ticket === parentId; });
+                if (ticketsForLevel.length === 0) return ''; let separatorHtml = '';
                 if (parentId === '0') {
-                    const uncompleted = ticketsForLevel.filter(t => !t.Concluido);
-                    const completed = ticketsForLevel.filter(t => t.Concluido);
-                    
-                    uncompleted.sort((a, b) => {
-                        const dateA = a.PrazoFinal ? new Date(a.PrazoFinal) : null;
-                        const dateB = b.PrazoFinal ? new Date(b.PrazoFinal) : null;
-                        if (dateA && dateB) return dateA - dateB;
-                        if (dateA) return -1;
-                        if (dateB) return 1;
-                        return 0;
-                    });
-                    
+                    const uncompleted = ticketsForLevel.filter(t => !t.Concluido); const completed = ticketsForLevel.filter(t => t.Concluido);
+                    uncompleted.sort((a, b) => { const dateA = a.PrazoFinal ? new Date(a.PrazoFinal) : null; const dateB = b.PrazoFinal ? new Date(b.PrazoFinal) : null; if (dateA && dateB) return dateA - dateB; if (dateA) return -1; if (dateB) return 1; return 0; });
                     ticketsForLevel = [...uncompleted, ...completed];
-                    if (uncompleted.length > 0 && completed.length > 0) {
-                        separatorHtml = `<div class="mt-4 pt-4 border-t border-gray-300">
-                                            <h5 class="px-2 mb-2 text-sm font-semibold text-gray-500 uppercase">Concluídos</h5>
-                                         </div>`;
-                    }
-                } else {
-                    ticketsForLevel.sort((a, b) => a.Ordem - b.Ordem);
-                }
-                
-                let html = `<div class="${parentId !== '0' ? 'ml-6 border-l-2 border-gray-200 pl-4' : ''}">`;
-                
-                let uncompletedProcessed = false;
-                ticketsForLevel.forEach((ticket) => {
-                    if (parentId === '0' && separatorHtml && ticket.Concluido && !uncompletedProcessed) {
-                        html += separatorHtml;
-                        uncompletedProcessed = true;
-                    }
-
-                    html += generateTicketItemHtml(ticket);
-                    html += buildTicketHtmlRecursive(ticket.ID_Ticket);
-                });
-                
-                html += `</div>`;
-                return html;
+                    if (uncompleted.length > 0 && completed.length > 0) { separatorHtml = `<div class="mt-4 pt-4 border-t border-gray-300"><h5 class="px-2 mb-2 text-sm font-semibold text-gray-500 uppercase">Concluídos</h5></div>`; }
+                } else { ticketsForLevel.sort((a, b) => a.Ordem - b.Ordem); }
+                let html = `<div class="${parentId !== '0' ? 'ml-6 border-l-2 border-gray-200 pl-4' : ''}">`; let uncompletedProcessed = false;
+                ticketsForLevel.forEach((ticket) => { if (parentId === '0' && separatorHtml && ticket.Concluido && !uncompletedProcessed) { html += separatorHtml; uncompletedProcessed = true; } html += generateTicketItemHtml(ticket); html += buildTicketHtmlRecursive(ticket.ID_Ticket); });
+                html += `</div>`; return html;
             }
-
             container.innerHTML = buildTicketHtmlRecursive('0') || '<p class="text-gray-500">Nenhum ticket criado para este cliente.</p>';
-            
-            // Re-attach listeners
             container.querySelectorAll('.ticket-checkbox').forEach(cb => cb.addEventListener('change', (e) => handleToggleTicket(e.target.dataset.ticketId, e.target.checked)));
             container.querySelectorAll('.add-subticket-btn').forEach(btn => btn.addEventListener('click', (e) => showNewTicketForm(clientId, e.currentTarget.dataset.parentId)));
             container.querySelectorAll('.edit-ticket-btn').forEach(btn => btn.addEventListener('click', (e) => showTicketEditor(e.currentTarget.dataset.ticketId)));
@@ -974,54 +777,20 @@
         }
 
         function showTicketEditor(ticketId) {
-            const editorContainer = document.getElementById('ticket-editor-container');
-            const ticket = appData.tickets.find(t => t.ID_Ticket === ticketId);
-            if (!ticket) return;
+            const editorContainer = document.getElementById('ticket-editor-container'); const ticket = appData.tickets.find(t => t.ID_Ticket === ticketId); if (!ticket) return;
             const userOptions = appData.users.map(user => `<option value="${user.ID_Usuario}" ${ticket.Responsavel_ID === user.ID_Usuario ? 'selected' : ''}>${user.NomeUsuario}</option>`).join('');
             const dueDateValue = ticket.PrazoFinal ? new Date(ticket.PrazoFinal).toISOString().split('T')[0] : '';
-            editorContainer.innerHTML = `
-                <h5 class="font-bold text-lg mb-2">Editando Ticket</h5>
-                <input type="text" id="editor-ticket-title" value="${ticket.TituloTicket}" class="form-input w-full mb-2 text-lg font-semibold" placeholder="Título do Ticket">
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-sm font-medium text-gray-700">Responsável</label><select id="editor-ticket-responsible" class="form-input"><option value="">Ninguém</option>${userOptions}</select></div>
-                    <div>
-                        <label class="text-sm font-medium text-gray-700">Prazo Final</label>
-                        <input type="date" id="editor-ticket-due-date" value="${dueDateValue}" class="form-input">
-                        <div class="flex space-x-2 mt-2"> <button class="suggestion-btn" data-days="3">+3 dias</button> <button class="suggestion-btn" data-days="7">+7 dias</button> </div>
-                    </div>
-                </div>
-                <div class="mt-4" id="quill-editor-ticket"></div>
-                <div class="flex justify-end mt-2"> <button id="save-ticket-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white font-bold py-2 px-4 rounded-full">Salvar Ticket</button> </div>
-            `;
-            editorContainer.classList.remove('hidden');
-            quillEditor = new Quill('#quill-editor-ticket', { theme: 'snow' });
-            if (ticket.DescricaoDetalhada) quillEditor.root.innerHTML = ticket.DescricaoDetalhada;
-            editorContainer.querySelectorAll('.suggestion-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const daysToAdd = parseInt(btn.dataset.days);
-                    const dateInput = document.getElementById('editor-ticket-due-date');
-                    const newDate = new Date();
-                    newDate.setDate(newDate.getDate() + daysToAdd);
-                    dateInput.value = newDate.toISOString().split('T')[0];
-                });
-            });
+            editorContainer.innerHTML = `<h5 class="font-bold text-lg mb-2">Editando Ticket</h5><input type="text" id="editor-ticket-title" value="${ticket.TituloTicket}" class="form-input w-full mb-2 text-lg font-semibold" placeholder="Título do Ticket"><div class="grid grid-cols-2 gap-4"><div><label class="text-sm font-medium text-gray-700">Responsável</label><select id="editor-ticket-responsible" class="form-input"><option value="">Ninguém</option>${userOptions}</select></div><div><label class="text-sm font-medium text-gray-700">Prazo Final</label><input type="date" id="editor-ticket-due-date" value="${dueDateValue}" class="form-input"><div class="flex space-x-2 mt-2"> <button class="suggestion-btn" data-days="3">+3 dias</button> <button class="suggestion-btn" data-days="7">+7 dias</button> </div></div></div><div class="mt-4" id="quill-editor-ticket"></div><div class="flex justify-end mt-2"> <button id="save-ticket-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white font-bold py-2 px-4 rounded-full">Salvar Ticket</button> </div>`;
+            editorContainer.classList.remove('hidden'); quillEditor = new Quill('#quill-editor-ticket', { theme: 'snow' }); if (ticket.DescricaoDetalhada) quillEditor.root.innerHTML = ticket.DescricaoDetalhada;
+            editorContainer.querySelectorAll('.suggestion-btn').forEach(btn => { btn.addEventListener('click', () => { const daysToAdd = parseInt(btn.dataset.days); const dateInput = document.getElementById('editor-ticket-due-date'); const newDate = new Date(); newDate.setDate(newDate.getDate() + daysToAdd); dateInput.value = newDate.toISOString().split('T')[0]; }); });
             document.getElementById('save-ticket-btn').addEventListener('click', () => handleSaveTicket(ticketId));
         }
 
         function handleSaveTicket(ticketId) {
-            const title = document.getElementById('editor-ticket-title').value;
-            const description = quillEditor.root.innerHTML;
-            const responsibleId = document.getElementById('editor-ticket-responsible').value;
-            const dueDate = document.getElementById('editor-ticket-due-date').value;
-            const ticket = appData.tickets.find(t => t.ID_Ticket === ticketId);
-            const client = appData.clients.find(c => c.ID_Cliente === ticket.ID_Cliente);
-            ticket.TituloTicket = title;
-            ticket.DescricaoDetalhada = description;
-            ticket.Responsavel_ID = responsibleId;
-            ticket.PrazoFinal = dueDate;
-            renderBoard();
-            showClientModal(client.ID_Cliente);
-            setTimeout(() => document.querySelector('button[data-tab="tickets"]').click(), 50);
+            const title = document.getElementById('editor-ticket-title').value; const description = quillEditor.root.innerHTML; const responsibleId = document.getElementById('editor-ticket-responsible').value; const dueDate = document.getElementById('editor-ticket-due-date').value;
+            const ticket = appData.tickets.find(t => t.ID_Ticket === ticketId); const client = appData.clients.find(c => c.ID_Cliente === ticket.ID_Cliente);
+            ticket.TituloTicket = title; ticket.DescricaoDetalhada = description; ticket.Responsavel_ID = responsibleId; ticket.PrazoFinal = dueDate;
+            showClientModal(client.ID_Cliente); setTimeout(() => document.querySelector('button[data-tab="tickets"]').click(), 50);
             const url = `${SCRIPT_URL}?action=updateTicket&ID_Ticket=${ticketId}&TituloTicket=${encodeURIComponent(title)}&DescricaoDetalhada=${encodeURIComponent(description)}&Responsavel_ID=${encodeURIComponent(responsibleId)}&PrazoFinal=${encodeURIComponent(dueDate)}`;
             jsonpRequest(url, (err, data) => { if (err || !data.success) { showToast("Erro ao salvar o ticket."); initializeApp(); } });
         }
@@ -1031,110 +800,47 @@
             const targetContainer = parentId !== '0' ? document.querySelector(`.add-subticket-btn[data-parent-id="${parentId}"]`).closest('.task-item').parentNode : document.getElementById('ticket-list-container');
             const formHtml = `<form id="new-ticket-form" class="p-2"><input type="text" id="new-ticket-input" class="form-input w-full" placeholder="Escreva o título e prima Enter"></form>`;
             targetContainer.insertAdjacentHTML(parentId !== '0' ? 'beforeend' : 'afterbegin', formHtml);
-            const form = document.getElementById('new-ticket-form');
-            const input = document.getElementById('new-ticket-input');
-            input.focus();
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const title = input.value.trim();
-                if (title) { handleCreateTicket(clientId, parentId, title); }
-                form.remove();
-            });
+            const form = document.getElementById('new-ticket-form'); const input = document.getElementById('new-ticket-input'); input.focus();
+            form.addEventListener('submit', (e) => { e.preventDefault(); const title = input.value.trim(); if (title) { handleCreateTicket(clientId, parentId, title); } form.remove(); });
             input.addEventListener('blur', () => { setTimeout(() => { if (document.getElementById('new-ticket-form')) document.getElementById('new-ticket-form').remove(); }, 150); });
         }
 
         function handleCreateTicket(clientId, parentId, title) {
-            let url = `${SCRIPT_URL}?action=createTicket&ID_Cliente=${clientId}&TituloTicket=${encodeURIComponent(title)}`;
-            if (parentId && parentId !== '0') url += `&Parent_ID_Ticket=${parentId}`;
-            jsonpRequest(url, (err, data) => {
-                if (err || !data.success) { showToast("Erro ao criar o ticket."); } 
-                else {
-                    appData.tickets.push(data.newTicket);
-                    renderBoard();
-                    showClientModal(clientId);
-                    setTimeout(() => document.querySelector('button[data-tab="tickets"]').click(), 50);
-                }
-            });
+            let url = `${SCRIPT_URL}?action=createTicket&ID_Cliente=${clientId}&TituloTicket=${encodeURIComponent(title)}`; if (parentId && parentId !== '0') url += `&Parent_ID_Ticket=${parentId}`;
+            jsonpRequest(url, (err, data) => { if (err || !data.success) { showToast("Erro ao criar o ticket."); } else { appData.tickets.push(data.newTicket); showClientModal(clientId); setTimeout(() => document.querySelector('button[data-tab="tickets"]').click(), 50); } });
         }
 
         function handleToggleTicket(ticketId, isCompleted) {
-            const ticket = appData.tickets.find(t => t.ID_Ticket === ticketId);
-            const originalState = ticket.Concluido;
-            ticket.Concluido = isCompleted;
-            renderBoard();
-            if(!clientModal.classList.contains('hidden')) { renderTicketList(ticket.ID_Cliente); }
+            const ticket = appData.tickets.find(t => t.ID_Ticket === ticketId); const originalState = ticket.Concluido; ticket.Concluido = isCompleted;
+            showClientModal(ticket.ID_Cliente); setTimeout(() => document.querySelector('button[data-tab="tickets"]').click(), 50);
             const url = `${SCRIPT_URL}?action=updateTicket&ID_Ticket=${ticketId}&Concluido=${isCompleted}`;
-            jsonpRequest(url, (err, data) => {
-                if (err || !data.success) {
-                    showToast("Erro ao atualizar o status do ticket.");
-                    ticket.Concluido = originalState;
-                    renderBoard();
-                    if(!clientModal.classList.contains('hidden')) { renderTicketList(ticket.ID_Cliente); }
-                }
-            });
+            jsonpRequest(url, (err, data) => { if (err || !data.success) { showToast("Erro ao atualizar o status do ticket."); ticket.Concluido = originalState; showClientModal(ticket.ID_Cliente); setTimeout(() => document.querySelector('button[data-tab="tickets"]').click(), 50); } });
         }
 
         function handleDeleteTicket(ticketId) {
             showConfirmationModal("Tem a certeza de que quer apagar este ticket e todos os seus sub-tickets?", () => {
-                const ticket = appData.tickets.find(t => t.ID_Ticket === ticketId);
-                const originalTickets = [...appData.tickets];
-                const ticketsToRemove = [ticketId];
-                let i = 0;
-                while (i < ticketsToRemove.length) {
-                    const parentId = ticketsToRemove[i];
-                    appData.tickets.filter(t => t.Parent_ID_Ticket === parentId).forEach(child => ticketsToRemove.push(child.ID_Ticket));
-                    i++;
-                }
+                const ticket = appData.tickets.find(t => t.ID_Ticket === ticketId); const originalTickets = [...appData.tickets];
+                const ticketsToRemove = [ticketId]; let i = 0;
+                while (i < ticketsToRemove.length) { const parentId = ticketsToRemove[i]; appData.tickets.filter(t => t.Parent_ID_Ticket === parentId).forEach(child => ticketsToRemove.push(child.ID_Ticket)); i++; }
                 appData.tickets = appData.tickets.filter(t => !ticketsToRemove.includes(t.ID_Ticket));
-                renderBoard();
-                showClientModal(ticket.ID_Cliente);
-                setTimeout(() => document.querySelector('button[data-tab="tickets"]').click(), 50);
+                showClientModal(ticket.ID_Cliente); setTimeout(() => document.querySelector('button[data-tab="tickets"]').click(), 50);
                 const url = `${SCRIPT_URL}?action=deleteTicket&ID_Ticket=${ticketId}`;
-                jsonpRequest(url, (err, data) => {
-                    if (err || !data.success) {
-                        showToast("Erro ao apagar o ticket.");
-                        appData.tickets = originalTickets;
-                        renderBoard();
-                        showClientModal(ticket.ID_Cliente);
-                        setTimeout(() => document.querySelector('button[data-tab="tickets"]').click(), 50);
-                    }
-                });
+                jsonpRequest(url, (err, data) => { if (err || !data.success) { showToast("Erro ao apagar o ticket."); appData.tickets = originalTickets; showClientModal(ticket.ID_Cliente); setTimeout(() => document.querySelector('button[data-tab="tickets"]').click(), 50); } });
             });
         }
-        // --- FIM: NOVAS FUNÇÕES PARA TICKETS ---
-
-        // --- FUNÇÃO DE SALVAR CLIENTE ATUALIZADA ---
+        
         function handleSaveClient(clientId) {
-            const saveBtn = document.getElementById('save-client-btn');
-            const saveStatus = document.getElementById('save-status');
-            saveBtn.disabled = true;
-            saveStatus.textContent = 'Salvando...';
-            
-            const fieldsToUpdate = [
-                'NomeEmpresa', 'CNPJ', 'NomeResponsavel', 'WhatsApp', 
-                'EmailFinanceiro', 'TelefoneDono', 'LinkGrupoWhatsApp',
-                'ValorContrato', 'Anotacoes'
-            ];
-            let updateUrl = `${SCRIPT_URL}?action=updateClientData&clientId=${encodeURIComponent(clientId)}`;
-            const updatedData = {};
-            
-            fieldsToUpdate.forEach(field => {
-                const value = document.getElementById(`modal-${field}`).value;
-                updateUrl += `&${encodeURIComponent(field)}=${encodeURIComponent(value)}`;
-                updatedData[field] = value;
-            });
-            
+            const saveBtn = document.getElementById('save-client-btn'); const saveStatus = document.getElementById('save-status');
+            saveBtn.disabled = true; saveStatus.textContent = 'Salvando...';
+            const fieldsToUpdate = ['NomeEmpresa', 'CNPJ', 'NomeResponsavel', 'WhatsApp', 'EmailFinanceiro', 'TelefoneDono', 'LinkGrupoWhatsApp', 'ValorContrato', 'Anotacoes'];
+            let updateUrl = `${SCRIPT_URL}?action=updateClientData&clientId=${encodeURIComponent(clientId)}`; const updatedData = {};
+            fieldsToUpdate.forEach(field => { const value = document.getElementById(`modal-${field}`).value; updateUrl += `&${encodeURIComponent(field)}=${encodeURIComponent(value)}`; updatedData[field] = value; });
             jsonpRequest(updateUrl, (err, data) => {
                 saveBtn.disabled = false;
-                if (err || !data.success) {
-                    saveStatus.textContent = 'Erro ao salvar!';
-                    setTimeout(() => saveStatus.textContent = '', 2000);
-                } else {
+                if (err || !data.success) { saveStatus.textContent = 'Erro ao salvar!'; setTimeout(() => saveStatus.textContent = '', 2000); } 
+                else {
                     saveStatus.textContent = 'Salvo com sucesso!';
-                    const clientInState = appData.clients.find(c => c.ID_Cliente === clientId);
-                    if (clientInState) {
-                        Object.assign(clientInState, updatedData);
-                    }
+                    const clientInState = appData.clients.find(c => c.ID_Cliente === clientId); if (clientInState) { Object.assign(clientInState, updatedData); }
                     setTimeout(() => hideClientModal(), 1000);
                 }
             });
