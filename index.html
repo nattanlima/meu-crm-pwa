@@ -111,8 +111,6 @@
         .suggestion-btn:hover { background-color: #e4e4e7; }
         @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.02); } }
         .pulse-animation { animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        .snap-x { scroll-snap-type: x mandatory; }
-        .snap-center { scroll-snap-align: center; }
     </style>
 </head>
 <body class="font-sans h-full">
@@ -187,7 +185,7 @@
                 <button id="logout-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-full" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
-        <main id="kanban-board" class="kanban-board-container flex space-x-4 p-4 flex-grow snap-x"></main>
+        <main id="kanban-board" class="kanban-board-container flex space-x-4 p-4 flex-grow"></main>
     </div>
 
     <!-- Modal do Cliente -->
@@ -441,7 +439,7 @@
             kanbanBoard.innerHTML = '';
             appData.statuses.sort((a, b) => a.Ordem - b.Ordem).forEach(status => {
                 const column = document.createElement('div');
-                column.className = 'kanban-column bg-slate-100 rounded-lg p-3 w-[90vw] md:w-80 flex-shrink-0 transition-all duration-300 snap-center';
+                column.className = 'kanban-column bg-slate-100 rounded-lg p-3 w-[90vw] md:w-80 flex-shrink-0 transition-all duration-300';
                 const clientsInStatus = clientList.filter(c => c.Status === status.NomeStatus);
                 
                 const initialClients = clientsInStatus.slice(0, CARDS_TO_SHOW_INITIAL);
