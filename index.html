@@ -56,10 +56,21 @@
             flex-grow: 1; /* Faz a área dos cards ocupar o espaço restante */
             overflow-y: auto; /* Habilita o scroll vertical DENTRO da coluna */
             padding-right: 4px; /* Espaço para a barra de rolagem */
+            scrollbar-width: none; /* Firefox */
         }
-        .kanban-cards::-webkit-scrollbar { width: 6px; }
-        .kanban-cards::-webkit-scrollbar-track { background: #e2e8f0; }
-        .kanban-cards::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+        .kanban-cards::-webkit-scrollbar { 
+            display: none; /* Chrome, Safari, and Opera */
+        }
+
+        /* --- ESTILOS DO MODAL --- */
+        #task-list-container, #ticket-list-container {
+            max-height: 45vh; /* Define uma altura máxima para a lista */
+            overflow-y: auto; /* Adiciona scroll apenas na lista quando necessário */
+        }
+        #task-list-container::-webkit-scrollbar, #ticket-list-container::-webkit-scrollbar { width: 6px; }
+        #task-list-container::-webkit-scrollbar-track, #ticket-list-container::-webkit-scrollbar-track { background: #e2e8f0; }
+        #task-list-container::-webkit-scrollbar-thumb, #ticket-list-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+
 
         /* --- OUTROS ESTILOS --- */
         .kanban-card { user-select: none; }
@@ -616,13 +627,13 @@
             setTimeout(() => modalContent.classList.remove('scale-95', 'opacity-0'), 10);
 
             modalContent.innerHTML = `
-                <div class="p-6 border-b">
+                <div class="p-6 border-b flex-shrink-0">
                     <div class="flex justify-between items-start">
                         <div><h2 class="text-3xl font-bold text-gray-800">${client.NomeEmpresa}</h2></div>
                         <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
                     </div>
                 </div>
-                <div class="border-b border-gray-200">
+                <div class="border-b border-gray-200 flex-shrink-0">
                     <nav id="modal-tabs" class="flex space-x-4 px-6 -mb-px overflow-x-auto">
                         <button data-tab="details" class="tab-button active flex-shrink-0">Detalhes</button>
                         <button data-tab="tasks" class="tab-button flex-shrink-0">Tarefas</button>
@@ -875,44 +886,87 @@
         // --- NOVAS FUNÇÕES PARA TICKETS ---
         function renderTicketList(clientId) {
             const container = document.getElementById('ticket-list-container');
-            const clientTickets = appData.tickets ? appData.tickets.filter(t => t.ID_Cliente === clientId) : [];
+            const allClientTickets = appData.tickets ? appData.tickets.filter(t => t.ID_Cliente === clientId) : [];
 
-            function buildTicketTree(parentId) {
-                const tickets = clientTickets.filter(ticket => {
+            const generateTicketItemHtml = (ticket) => {
+                const responsibleUser = appData.users.find(u => u.ID_Usuario === ticket.Responsavel_ID);
+                const dueDate = ticket.PrazoFinal ? new Date(ticket.PrazoFinal) : null;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isOverdue = dueDate && dueDate < today && !ticket.Concluido;
+                
+                return `
+                    <div class="task-item group flex items-center justify-between p-2 hover:bg-gray-100 rounded-md">
+                        <div class="flex items-center flex-grow min-w-0">
+                            <input type="checkbox" data-ticket-id="${ticket.ID_Ticket}" class="ticket-checkbox h-4 w-4 mr-3 flex-shrink-0" ${ticket.Concluido ? 'checked' : ''}>
+                            <div class="truncate">
+                                <span class="ticket-title ${ticket.Concluido ? 'line-through text-gray-400' : ''}">${ticket.TituloTicket}</span>
+                                ${dueDate ? `<span class="ml-2 text-xs ${isOverdue ? 'text-red-500 font-semibold' : 'text-gray-500'}"><i class="far fa-calendar-alt mr-1"></i>${dueDate.toLocaleDateString('pt-BR')}</span>` : ''}
+                            </div>
+                            ${responsibleUser ? `<span class="ml-2 text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 flex-shrink-0">${responsibleUser.NomeUsuario}</span>` : ''}
+                        </div>
+                        <div class="task-controls opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                            <button title="Adicionar Sub-ticket" class="add-subticket-btn text-gray-400 hover:text-green-500 p-1" data-parent-id="${ticket.ID_Ticket}"><i class="fas fa-plus-circle"></i></button>
+                            <button title="Editar Ticket" class="edit-ticket-btn text-gray-400 hover:text-blue-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-pencil-alt"></i></button>
+                            <button title="Apagar Ticket" class="delete-ticket-btn text-gray-400 hover:text-red-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            };
+
+            function buildTicketHtmlRecursive(parentId) {
+                let ticketsForLevel = allClientTickets.filter(ticket => {
                     if (parentId === '0') return ticket.Parent_ID_Ticket == '0' || !ticket.Parent_ID_Ticket;
                     return ticket.Parent_ID_Ticket === parentId;
                 });
-                if (tickets.length === 0) return '';
+
+                if (ticketsForLevel.length === 0) return '';
+
+                let separatorHtml = '';
+
+                if (parentId === '0') {
+                    const uncompleted = ticketsForLevel.filter(t => !t.Concluido);
+                    const completed = ticketsForLevel.filter(t => t.Concluido);
+                    
+                    uncompleted.sort((a, b) => {
+                        const dateA = a.PrazoFinal ? new Date(a.PrazoFinal) : null;
+                        const dateB = b.PrazoFinal ? new Date(b.PrazoFinal) : null;
+                        if (dateA && dateB) return dateA - dateB;
+                        if (dateA) return -1;
+                        if (dateB) return 1;
+                        return 0;
+                    });
+                    
+                    ticketsForLevel = [...uncompleted, ...completed];
+                    if (uncompleted.length > 0 && completed.length > 0) {
+                        separatorHtml = `<div class="mt-4 pt-4 border-t border-gray-300">
+                                            <h5 class="px-2 mb-2 text-sm font-semibold text-gray-500 uppercase">Concluídos</h5>
+                                         </div>`;
+                    }
+                } else {
+                    ticketsForLevel.sort((a, b) => a.Ordem - b.Ordem);
+                }
+                
                 let html = `<div class="${parentId !== '0' ? 'ml-6 border-l-2 border-gray-200 pl-4' : ''}">`;
-                tickets.sort((a,b) => a.Ordem - b.Ordem).forEach(ticket => {
-                    const responsibleUser = appData.users.find(u => u.ID_Usuario === ticket.Responsavel_ID);
-                    const dueDate = ticket.PrazoFinal ? new Date(ticket.PrazoFinal) : null;
-                    const today = new Date();
-                    today.setHours(0,0,0,0);
-                    const isOverdue = dueDate && dueDate < today;
-                    html += `
-                        <div class="task-item group flex items-center justify-between p-2 hover:bg-gray-100 rounded-md">
-                            <div class="flex items-center flex-grow min-w-0">
-                                <input type="checkbox" data-ticket-id="${ticket.ID_Ticket}" class="ticket-checkbox h-4 w-4 mr-3 flex-shrink-0" ${ticket.Concluido ? 'checked' : ''}>
-                                <div class="truncate">
-                                    <span class="ticket-title ${ticket.Concluido ? 'line-through text-gray-400' : ''}">${ticket.TituloTicket}</span>
-                                    ${dueDate ? `<span class="ml-2 text-xs ${isOverdue ? 'text-red-500' : 'text-gray-500'}"><i class="far fa-calendar-alt mr-1"></i>${dueDate.toLocaleDateString('pt-BR')}</span>` : ''}
-                                </div>
-                                ${responsibleUser ? `<span class="ml-2 text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 flex-shrink-0">${responsibleUser.NomeUsuario}</span>` : ''}
-                            </div>
-                            <div class="task-controls opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                <button title="Adicionar Sub-ticket" class="add-subticket-btn text-gray-400 hover:text-green-500 p-1" data-parent-id="${ticket.ID_Ticket}"><i class="fas fa-plus-circle"></i></button>
-                                <button title="Editar Ticket" class="edit-ticket-btn text-gray-400 hover:text-blue-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-pencil-alt"></i></button>
-                                <button title="Apagar Ticket" class="delete-ticket-btn text-gray-400 hover:text-red-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>
-                    `;
-                    html += buildTicketTree(ticket.ID_Ticket);
+                
+                let uncompletedProcessed = false;
+                ticketsForLevel.forEach((ticket) => {
+                    if (parentId === '0' && separatorHtml && ticket.Concluido && !uncompletedProcessed) {
+                        html += separatorHtml;
+                        uncompletedProcessed = true;
+                    }
+
+                    html += generateTicketItemHtml(ticket);
+                    html += buildTicketHtmlRecursive(ticket.ID_Ticket);
                 });
+                
                 html += `</div>`;
                 return html;
             }
-            container.innerHTML = buildTicketTree('0') || '<p class="text-gray-500">Nenhum ticket criado para este cliente.</p>';
+
+            container.innerHTML = buildTicketHtmlRecursive('0') || '<p class="text-gray-500">Nenhum ticket criado para este cliente.</p>';
+            
+            // Re-attach listeners
             container.querySelectorAll('.ticket-checkbox').forEach(cb => cb.addEventListener('change', (e) => handleToggleTicket(e.target.dataset.ticketId, e.target.checked)));
             container.querySelectorAll('.add-subticket-btn').forEach(btn => btn.addEventListener('click', (e) => showNewTicketForm(clientId, e.currentTarget.dataset.parentId)));
             container.querySelectorAll('.edit-ticket-btn').forEach(btn => btn.addEventListener('click', (e) => showTicketEditor(e.currentTarget.dataset.ticketId)));
