@@ -572,21 +572,10 @@
             clientTasks.sort((a, b) => new Date(a.PrazoFinal) - new Date(b.PrazoFinal));
             const nextTask = clientTasks[0];
 
-            let nextTaskHtml = `<div class="text-sm text-gray-400 mt-3 pt-3 border-t border-gray-100">Nenhuma tarefa pendente com prazo.</div>`;
+            let nextTaskHtml;
 
             if (nextTask) {
-                const responsibleUser = appData.users.find(u => u.ID_Usuario === nextTask.Responsavel_ID);
                 const timeInfo = formatTimeRemaining(nextTask.PrazoFinal);
-                
-                let userAvatarHtml = `<div class="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-400 text-xs" title="Sem responsável"><i class="fas fa-user"></i></div>`;
-                if (responsibleUser) {
-                    const userInitial = responsibleUser.NomeUsuario ? responsibleUser.NomeUsuario.charAt(0).toUpperCase() : '?';
-                    const fallbackAvatar = `<div class='w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold' title='${responsibleUser.NomeUsuario}'>${userInitial}</div>`;
-                    userAvatarHtml = responsibleUser.FotoURL 
-                        ? `<img src="${responsibleUser.FotoURL}" class="w-8 h-8 rounded-full flex-shrink-0 object-cover" title="${responsibleUser.NomeUsuario}" onerror="this.outerHTML = '${fallbackAvatar.replace(/"/g, '\\"')}';">`
-                        : fallbackAvatar;
-                }
-                
                 nextTaskHtml = `
                     <div class="mt-3 pt-3 border-t border-gray-100 group relative cursor-pointer" data-task-id="${nextTask.ID_Tarefa}">
                         <div class="absolute inset-0 bg-green-100 opacity-0 group-hover:opacity-100 transition-opacity rounded-md hidden md:flex items-center justify-center">
@@ -598,10 +587,12 @@
                                 <span class="text-sm text-gray-700 font-medium">${nextTask.TituloTarefa}</span>
                                 <p class="text-sm mt-1 ${timeInfo.colorClass} ${timeInfo.pulse ? 'pulse-animation' : ''}">${timeInfo.text}</p>
                             </div>
-                            ${userAvatarHtml}
+                            <div class="user-avatar-placeholder w-8 h-8 flex-shrink-0"></div>
                         </div>
                     </div>
                 `;
+            } else {
+                nextTaskHtml = `<div class="text-sm text-gray-400 mt-3 pt-3 border-t border-gray-100">Nenhuma tarefa pendente com prazo.</div>`;
             }
 
             card.innerHTML = `
@@ -611,6 +602,36 @@
                 <div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-green-500 h-2 rounded-full" style="width: ${progress}%"></div></div>
                 ${nextTaskHtml}
             `;
+
+            // Programmatically create and append avatar to avoid innerHTML issues
+            const avatarPlaceholder = card.querySelector('.user-avatar-placeholder');
+            if (avatarPlaceholder && nextTask) {
+                const responsibleUser = appData.users.find(u => u.ID_Usuario === nextTask.Responsavel_ID);
+                
+                if (responsibleUser) {
+                    const userInitial = responsibleUser.NomeUsuario ? responsibleUser.NomeUsuario.charAt(0).toUpperCase() : '?';
+                    const fallbackAvatar = document.createElement('div');
+                    fallbackAvatar.className = 'w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold';
+                    fallbackAvatar.title = responsibleUser.NomeUsuario;
+                    fallbackAvatar.textContent = userInitial;
+
+                    if (responsibleUser.FotoURL) {
+                        const avatarImg = document.createElement('img');
+                        avatarImg.src = responsibleUser.FotoURL;
+                        avatarImg.className = 'w-8 h-8 rounded-full flex-shrink-0 object-cover';
+                        avatarImg.title = responsibleUser.NomeUsuario;
+                        avatarImg.onerror = () => {
+                            avatarPlaceholder.innerHTML = ''; // Clear placeholder in case of error
+                            avatarPlaceholder.appendChild(fallbackAvatar);
+                        };
+                        avatarPlaceholder.appendChild(avatarImg);
+                    } else {
+                        avatarPlaceholder.appendChild(fallbackAvatar);
+                    }
+                } else {
+                    avatarPlaceholder.innerHTML = `<div class="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-400 text-xs" title="Sem responsável"><i class="fas fa-user"></i></div>`;
+                }
+            }
             
             card.addEventListener('click', (e) => { e.stopPropagation(); showClientModal(client.ID_Cliente); });
             
