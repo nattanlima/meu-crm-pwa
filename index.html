@@ -95,6 +95,12 @@
         .filter-tag-option:hover {
             background-color: #f1f5f9; /* slate-100 */
         }
+        
+        /* UPGRADE: Estilo para a nova visão de lista */
+        .list-item-row { transition: background-color 0.2s, border-color 0.2s; }
+        .list-item-row:hover {
+            background-color: #f8fafc; /* slate-50 */
+        }
 
         /* --- OUTROS ESTILOS --- */
         .kanban-card { user-select: none; }
@@ -159,8 +165,8 @@
                     <!-- Filtro de Tags -->
                     <div id="filter-container" class="relative flex-shrink-0">
                          <button id="filter-trigger-btn" data-active-tag-id="" class="flex items-center justify-center w-full px-4 py-2 border border-gray-300 rounded-full bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                            <span id="filter-btn-text">TODOS</span>
-                            <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
+                             <span id="filter-btn-text">TODOS</span>
+                             <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
                          </button>
                          <div id="filter-popup" class="hidden popup-menu absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                              <div id="filter-options-container" class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
@@ -175,6 +181,10 @@
                         </div>
                         <input type="search" id="search-input" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400" placeholder="Pesquisar por empresa...">
                     </div>
+                    <!-- UPGRADE: Botão de alternância de visualização -->
+                    <button id="view-toggle-btn" class="flex-shrink-0 flex items-center justify-center w-11 h-11 border border-gray-300 rounded-full bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors" title="Alternar para Visão de Lista">
+                        <i id="view-toggle-icon" class="fas fa-list-check text-lg"></i>
+                    </button>
                 </div>
             </div>
 
@@ -200,7 +210,35 @@
                 </div>
             </div>
         </header>
+
         <main id="kanban-board" class="kanban-board-container flex space-x-4 p-4 flex-grow"></main>
+
+        <!-- UPGRADE: Nova Visão de Lista -->
+        <div id="list-view" class="hidden flex-grow flex flex-col">
+            <!-- Filtros da Lista -->
+            <div id="list-view-filters" class="p-4 bg-white border-b border-slate-200 flex-shrink-0 flex flex-wrap gap-4 items-center">
+                <span class="font-semibold text-gray-700 hidden md:inline">Filtros da Lista:</span>
+                <!-- Filtro de Tipo -->
+                <div class="relative">
+                    <select id="list-filter-type" class="form-input !m-0 !py-1.5 !pl-3 !pr-8 appearance-none bg-slate-50">
+                        <option value="all">Todos os Tipos</option>
+                        <option value="task">Apenas Tarefas</option>
+                        <option value="ticket">Apenas Tickets</option>
+                    </select>
+                </div>
+                <!-- Filtro de Responsável -->
+                <div class="relative">
+                    <select id="list-filter-responsible" class="form-input !m-0 !py-1.5 !pl-3 !pr-8 appearance-none bg-slate-50">
+                        <!-- Opções de usuários serão inseridas aqui -->
+                    </select>
+                </div>
+            </div>
+            <!-- Container da Lista de Atividades -->
+            <div id="list-view-container" class="overflow-y-auto flex-grow p-4">
+                <!-- Itens da lista serão inseridos aqui -->
+            </div>
+        </div>
+
     </div>
 
     <!-- Modal do Cliente -->
@@ -245,6 +283,14 @@
         let currentUser = null;
         let deferredPrompt;
         let activeTagId = null;
+
+        // UPGRADE: Variáveis de estado para a nova visão
+        let currentView = 'kanban'; // 'kanban' ou 'list'
+        let listFilterType = 'all';
+        let listFilterResponsibleId = 'all';
+        const listView = document.getElementById('list-view');
+        const viewToggleButton = document.getElementById('view-toggle-btn');
+        const viewToggleIcon = document.getElementById('view-toggle-icon');
 
         // --- FUNÇÕES DE UTILIDADE ---
         function jsonpRequest(url, callback) {
@@ -375,6 +421,8 @@
                 appData = data;
                 setupFilterLogic();
                 setupUserMenu();
+                // UPGRADE: Adicionar listener para o novo botão de visualização
+                setupViewToggle();
                 applyFiltersAndRender();
             });
         }
@@ -400,9 +448,14 @@
             return filteredClients;
         }
 
+        // UPGRADE: Função principal de renderização agora decide qual view mostrar
         function applyFiltersAndRender() {
-            const clientList = getFilteredClients();
-            renderBoard(clientList);
+            if (currentView === 'kanban') {
+                const clientList = getFilteredClients();
+                renderBoard(clientList);
+            } else {
+                renderListView();
+            }
         }
 
         function setupFilterLogic() {
@@ -484,8 +537,8 @@
                     logoutPopup.classList.add('hidden');
                 }
                  if (!document.getElementById('filter-container').contains(e.target)) {
-                    document.getElementById('filter-popup').classList.add('hidden');
-                }
+                     document.getElementById('filter-popup').classList.add('hidden');
+                 }
             });
         }
 
@@ -552,11 +605,11 @@
         }
 
         function formatTimeRemaining(dueDateString) {
-            if (!dueDateString) return { text: '', colorClass: 'text-gray-500', pulse: false };
+            if (!dueDateString) return { text: 'Sem prazo', colorClass: 'text-gray-500', pulse: false };
             const dueDate = new Date(dueDateString);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            dueDate.setHours(23, 59, 59, 999);
+            dueDate.setHours(23, 59, 59, 999); // Considera o dia todo do prazo
             const diffTime = dueDate.getTime() - today.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             if (diffDays < 0) return { text: 'Atrasado', colorClass: 'text-red-500 font-semibold', pulse: true };
@@ -658,7 +711,210 @@
             }
             return card;
         }
+
+        // --- UPGRADE: LÓGICA DA NOVA VISÃO DE LISTA ---
+        function setupViewToggle() {
+            viewToggleButton.addEventListener('click', () => {
+                if (currentView === 'kanban') {
+                    currentView = 'list';
+                    kanbanBoard.classList.add('hidden');
+                    listView.classList.remove('hidden');
+                    viewToggleIcon.className = 'fas fa-table-columns text-lg';
+                    viewToggleButton.title = 'Alternar para Visão Kanban';
+                    populateListViewFilters();
+                    renderListView();
+                } else {
+                    currentView = 'kanban';
+                    listView.classList.add('hidden');
+                    kanbanBoard.classList.remove('hidden');
+                    viewToggleIcon.className = 'fas fa-list-check text-lg';
+                    viewToggleButton.title = 'Alternar para Visão de Lista';
+                    applyFiltersAndRender();
+                }
+            });
+        }
+
+        function populateListViewFilters() {
+            const responsibleFilter = document.getElementById('list-filter-responsible');
+            // Impede a duplicação das opções
+            if (responsibleFilter.options.length > 1) return;
+
+            responsibleFilter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
+            if (appData.users) {
+                appData.users.sort((a,b) => a.NomeUsuario.localeCompare(b.NomeUsuario)).forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.ID_Usuario;
+                    option.textContent = user.NomeUsuario;
+                    responsibleFilter.appendChild(option);
+                });
+            }
+            // Adiciona listeners uma única vez
+            document.getElementById('list-filter-type').addEventListener('change', (e) => {
+                listFilterType = e.target.value;
+                renderListView();
+            });
+            document.getElementById('list-filter-responsible').addEventListener('change', (e) => {
+                listFilterResponsibleId = e.target.value;
+                renderListView();
+            });
+        }
+
+        function renderListView() {
+            const container = document.getElementById('list-view-container');
+            container.innerHTML = loaderTemplate.content.cloneNode(true).firstElementChild.outerHTML;
+
+            // 1. Obter todas as tarefas e tickets abertos
+            const openTasks = (appData.tasks || []).filter(t => !t.Concluido).map(t => ({...t, type: 'task', id: t.ID_Tarefa, title: t.TituloTarefa }));
+            const openTickets = (appData.tickets || []).filter(t => !t.Concluido).map(t => ({...t, type: 'ticket', id: t.ID_Ticket, title: t.TituloTicket }));
+            let combinedList = [...openTasks, ...openTickets];
+
+            // 2. Aplicar filtros globais (empresa e tag)
+            const visibleClientIds = getFilteredClients().map(c => c.ID_Cliente);
+            combinedList = combinedList.filter(item => visibleClientIds.includes(item.ID_Cliente));
+
+            // 3. Aplicar filtros da lista (tipo e responsável)
+            if (listFilterType !== 'all') {
+                combinedList = combinedList.filter(item => item.type === listFilterType);
+            }
+            if (listFilterResponsibleId !== 'all') {
+                combinedList = combinedList.filter(item => item.Responsavel_ID === listFilterResponsibleId);
+            }
+
+            // 4. Ordenar a lista
+            combinedList.sort((a, b) => {
+                const aHasDate = !!a.PrazoFinal;
+                const bHasDate = !!b.PrazoFinal;
+                if (!aHasDate && bHasDate) return -1; // 'a' (sem data) vem primeiro
+                if (aHasDate && !bHasDate) return 1;  // 'b' (sem data) vem primeiro
+                if (!aHasDate && !bHasDate) return 0; // ambos sem data, mantém a ordem
+                return new Date(a.PrazoFinal) - new Date(b.PrazoFinal); // ambos com data, ordena pela mais próxima
+            });
+
+            // 5. Renderizar o HTML
+            if (combinedList.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 mt-8 p-4">Nenhuma atividade encontrada com os filtros atuais.</div>';
+                return;
+            }
+
+            const listHtml = combinedList.map(item => {
+                const client = appData.clients.find(c => c.ID_Cliente === item.ID_Cliente);
+                const responsibleUser = appData.users.find(u => u.ID_Usuario === item.Responsavel_ID);
+                const timeInfo = formatTimeRemaining(item.PrazoFinal);
+
+                let avatarHtml = `<div title="Sem responsável" class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fas fa-user"></i></div>`;
+                if (responsibleUser) {
+                    if (responsibleUser.FotoURL) {
+                        avatarHtml = `<img src="${responsibleUser.FotoURL}" alt="${responsibleUser.NomeUsuario}" title="${responsibleUser.NomeUsuario}" crossorigin="anonymous" referrerpolicy="no-referrer" class="w-8 h-8 rounded-full object-cover">`;
+                    } else {
+                        const initial = responsibleUser.NomeUsuario ? responsibleUser.NomeUsuario.charAt(0).toUpperCase() : '?';
+                        avatarHtml = `<div title="${responsibleUser.NomeUsuario}" class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">${initial}</div>`;
+                    }
+                }
+
+                const iconClass = item.type === 'task' ? 'fa-check-square text-blue-500' : 'fa-ticket text-orange-500';
+                const itemTypeLabel = item.type === 'task' ? 'Tarefa' : 'Ticket';
+                const dueDateTitle = item.PrazoFinal ? new Date(item.PrazoFinal).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'Sem prazo definido';
+
+                // CORREÇÃO: Adicionados botões de ação que aparecem no hover.
+                return `
+                    <div class="list-item-row group bg-white rounded-lg p-3 mb-2 shadow-sm border flex items-center gap-4 relative">
+                        <!-- Ícone do Tipo -->
+                        <div class="flex-shrink-0 w-8 text-center" title="${itemTypeLabel}">
+                            <i class="fas ${iconClass} text-xl"></i>
+                        </div>
+                        <!-- Informação Principal (Título e Empresa) -->
+                        <div class="flex-grow min-w-0">
+                            <p class="font-semibold text-gray-800 truncate" title="${item.title}">${item.title}</p>
+                            <p class="text-sm text-gray-500 truncate" title="${client ? client.NomeEmpresa : 'Cliente não encontrado'}">
+                                <i class="far fa-building mr-1"></i> ${client ? client.NomeEmpresa : 'N/A'}
+                            </p>
+                        </div>
+                        <!-- Prazo -->
+                        <div class="flex-shrink-0 text-right w-32 hidden md:block">
+                            <p class="text-sm font-medium ${timeInfo.colorClass} ${timeInfo.pulse ? 'pulse-animation' : ''}" title="Prazo: ${dueDateTitle}">
+                                ${timeInfo.text}
+                            </p>
+                        </div>
+                        <!-- Responsável -->
+                        <div class="flex-shrink-0">
+                            ${avatarHtml}
+                        </div>
+                        <!-- Botões de Ação (Aparecem no Hover) -->
+                        <div class="absolute right-2 top-1/2 -translate-y-1/2 h-full items-center bg-white/50 backdrop-blur-sm pl-4
+                                    opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                            <button onclick="handleQuickComplete(event, '${item.type}', '${item.id}')" title="Marcar como Concluída"
+                                    class="w-9 h-9 flex items-center justify-center rounded-full text-green-600 hover:bg-green-100 transition-colors">
+                                <i class="fas fa-check-circle text-xl"></i>
+                            </button>
+                            <button onclick="handleListItemClick(event, '${item.ID_Cliente}', '${item.type}', '${item.id}')" title="Editar"
+                                    class="w-9 h-9 flex items-center justify-center rounded-full text-blue-600 hover:bg-blue-100 transition-colors">
+                                <i class="fas fa-pencil-alt text-md"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = listHtml;
+        }
         
+        // CORREÇÃO: Função agora aceita o ID do item e chama o editor correto
+        function handleListItemClick(event, clientId, itemType, itemId) {
+            event.stopPropagation(); // Impede que outros eventos de clique sejam acionados
+            showClientModal(clientId);
+            // Aguarda o modal ser renderizado para clicar na aba e abrir o editor.
+            setTimeout(() => {
+                const tabToClick = itemType === 'task' ? 'tasks' : 'tickets';
+                const tabButton = document.querySelector(`#modal-tabs button[data-tab="${tabToClick}"]`);
+                if (tabButton && !tabButton.classList.contains('active')) {
+                    tabButton.click();
+                }
+
+                // Chamar a função de editor apropriada
+                if (itemType === 'task') {
+                    showTaskEditor(itemId);
+                } else if (itemType === 'ticket') {
+                    showTicketEditor(itemId);
+                }
+            }, 150);
+        }
+
+        // NOVA FUNÇÃO: Marca um item como concluído diretamente da lista
+        function handleQuickComplete(event, itemType, itemId) {
+            event.stopPropagation();
+            let item, url, itemArray;
+
+            if (itemType === 'task') {
+                itemArray = appData.tasks;
+                item = itemArray.find(t => t.ID_Tarefa === itemId);
+                url = `${SCRIPT_URL}?action=updateTask&ID_Tarefa=${itemId}&Concluido=true`;
+            } else {
+                itemArray = appData.tickets;
+                item = itemArray.find(t => t.ID_Ticket === itemId);
+                url = `${SCRIPT_URL}?action=updateTicket&ID_Ticket=${itemId}&Concluido=true`;
+            }
+
+            if (!item) return;
+
+            const originalState = item.Concluido;
+            item.Concluido = true; // Atualização otimista
+            renderListView(); // Re-renderiza a lista (o item sumirá)
+            showToast(`${itemTypeLabel(itemType)} concluída!`);
+
+            jsonpRequest(url, (err, data) => {
+                if (err || !data.success) {
+                    showToast(`Erro ao concluir ${itemTypeLabel(itemType)}.`);
+                    item.Concluido = originalState; // Reverte em caso de erro
+                    renderListView(); // Re-renderiza para mostrar o item novamente
+                }
+            });
+        }
+
+        function itemTypeLabel(type) {
+            return type === 'task' ? 'Tarefa' : 'Ticket';
+        }
+
+
         // --- Lógica do PWA ---
         document.addEventListener('DOMContentLoaded', () => {
             const manifest = {
@@ -758,12 +1014,17 @@
                 const clientId = form.dataset.clientId;
                 const client = appData.clients.find(c => c.ID_Cliente.toString() === clientId);
                 if (client) {
+                    // Atualiza o card na visão Kanban
                     updateCardOnBoard(client.ID_Cliente);
                 }
             }
             modalContent.classList.add('scale-95', 'opacity-0');
             setTimeout(() => {
                 clientModal.classList.add('hidden');
+                // UPGRADE: Se a visão de lista estiver ativa, atualiza ela para refletir as mudanças
+                if (currentView === 'list') {
+                    renderListView();
+                }
             }, 300);
         }
         
@@ -802,7 +1063,7 @@
                 if (tasks.length === 0) return ''; let html = `<div class="${parentId !== '0' ? 'ml-6 border-l-2 border-gray-200 pl-4' : ''}">`;
                 tasks.sort((a,b) => a.Ordem - b.Ordem).forEach(task => {
                     const responsibleUser = appData.users.find(u => u.ID_Usuario === task.Responsavel_ID); const dueDate = task.PrazoFinal ? new Date(task.PrazoFinal) : null; const today = new Date(); today.setHours(0,0,0,0); const isOverdue = dueDate && dueDate < today;
-                    html += `<div class="task-item group flex items-center justify-between p-2 hover:bg-gray-100 rounded-md"><div class="flex items-center flex-grow min-w-0"><input type="checkbox" data-task-id="${task.ID_Tarefa}" class="task-checkbox h-4 w-4 mr-3 flex-shrink-0" ${task.Concluido ? 'checked' : ''}><div class="truncate"><span class="task-title ${task.Concluido ? 'line-through text-gray-400' : ''}">${task.TituloTarefa}</span>${dueDate ? `<span class="ml-2 text-xs ${isOverdue ? 'text-red-500' : 'text-gray-500'}"><i class="far fa-calendar-alt mr-1"></i>${dueDate.toLocaleDateString('pt-BR')}</span>` : ''}</div>${responsibleUser ? `<span class="ml-2 text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 flex-shrink-0">${responsibleUser.NomeUsuario}</span>` : ''}</div><div class="task-controls opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><button title="Adicionar Subtarefa" class="add-subtask-btn text-gray-400 hover:text-green-500 p-1" data-parent-id="${task.ID_Tarefa}"><i class="fas fa-plus-circle"></i></button><button title="Editar Tarefa" class="edit-task-btn text-gray-400 hover:text-blue-500 p-1" data-task-id="${task.ID_Tarefa}"><i class="fas fa-pencil-alt"></i></button><button title="Apagar Tarefa" class="delete-task-btn text-gray-400 hover:text-red-500 p-1" data-task-id="${task.ID_Tarefa}"><i class="fas fa-trash"></i></button></div></div>`;
+                    html += `<div class="task-item group flex items-center justify-between p-2 hover:bg-gray-100 rounded-md"><div class="flex items-center flex-grow min-w-0"><input type="checkbox" data-task-id="${task.ID_Tarefa}" class="task-checkbox h-4 w-4 mr-3 flex-shrink-0" ${task.Concluido ? 'checked' : ''}><div class="truncate"><span class="task-title ${task.Concluido ? 'line-through text-gray-400' : ''}">${task.TituloTarefa}</span>${dueDate ? `<span class="ml-2 text-xs ${isOverdue ? 'text-red-500' : 'text-gray-500'}"><i class="far fa-calendar-alt mr-1"></i>${dueDate.toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>` : ''}</div>${responsibleUser ? `<span class="ml-2 text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 flex-shrink-0">${responsibleUser.NomeUsuario}</span>` : ''}</div><div class="task-controls opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><button title="Adicionar Subtarefa" class="add-subtask-btn text-gray-400 hover:text-green-500 p-1" data-parent-id="${task.ID_Tarefa}"><i class="fas fa-plus-circle"></i></button><button title="Editar Tarefa" class="edit-task-btn text-gray-400 hover:text-blue-500 p-1" data-task-id="${task.ID_Tarefa}"><i class="fas fa-pencil-alt"></i></button><button title="Apagar Tarefa" class="delete-task-btn text-gray-400 hover:text-red-500 p-1" data-task-id="${task.ID_Tarefa}"><i class="fas fa-trash"></i></button></div></div>`;
                     html += buildTaskTree(task.ID_Tarefa);
                 }); html += `</div>`; return html;
             }
@@ -871,7 +1132,7 @@
             const container = document.getElementById('ticket-list-container'); const allClientTickets = appData.tickets ? appData.tickets.filter(t => t.ID_Cliente === clientId) : [];
             const generateTicketItemHtml = (ticket) => {
                 const responsibleUser = appData.users.find(u => u.ID_Usuario === ticket.Responsavel_ID); const dueDate = ticket.PrazoFinal ? new Date(ticket.PrazoFinal) : null; const today = new Date(); today.setHours(0, 0, 0, 0); const isOverdue = dueDate && dueDate < today && !ticket.Concluido;
-                return `<div class="task-item group flex items-center justify-between p-2 hover:bg-gray-100 rounded-md"><div class="flex items-center flex-grow min-w-0"><input type="checkbox" data-ticket-id="${ticket.ID_Ticket}" class="ticket-checkbox h-4 w-4 mr-3 flex-shrink-0" ${ticket.Concluido ? 'checked' : ''}><div class="truncate"><span class="ticket-title ${ticket.Concluido ? 'line-through text-gray-400' : ''}">${ticket.TituloTicket}</span>${dueDate ? `<span class="ml-2 text-xs ${isOverdue ? 'text-red-500 font-semibold' : 'text-gray-500'}"><i class="far fa-calendar-alt mr-1"></i>${dueDate.toLocaleDateString('pt-BR')}</span>` : ''}</div>${responsibleUser ? `<span class="ml-2 text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 flex-shrink-0">${responsibleUser.NomeUsuario}</span>` : ''}</div><div class="task-controls opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><button title="Adicionar Sub-ticket" class="add-subticket-btn text-gray-400 hover:text-green-500 p-1" data-parent-id="${ticket.ID_Ticket}"><i class="fas fa-plus-circle"></i></button><button title="Editar Ticket" class="edit-ticket-btn text-gray-400 hover:text-blue-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-pencil-alt"></i></button><button title="Apagar Ticket" class="delete-ticket-btn text-gray-400 hover:text-red-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-trash"></i></button></div></div>`;
+                return `<div class="task-item group flex items-center justify-between p-2 hover:bg-gray-100 rounded-md"><div class="flex items-center flex-grow min-w-0"><input type="checkbox" data-ticket-id="${ticket.ID_Ticket}" class="ticket-checkbox h-4 w-4 mr-3 flex-shrink-0" ${ticket.Concluido ? 'checked' : ''}><div class="truncate"><span class="ticket-title ${ticket.Concluido ? 'line-through text-gray-400' : ''}">${ticket.TituloTicket}</span>${dueDate ? `<span class="ml-2 text-xs ${isOverdue ? 'text-red-500 font-semibold' : 'text-gray-500'}"><i class="far fa-calendar-alt mr-1"></i>${dueDate.toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>` : ''}</div>${responsibleUser ? `<span class="ml-2 text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 flex-shrink-0">${responsibleUser.NomeUsuario}</span>` : ''}</div><div class="task-controls opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><button title="Adicionar Sub-ticket" class="add-subticket-btn text-gray-400 hover:text-green-500 p-1" data-parent-id="${ticket.ID_Ticket}"><i class="fas fa-plus-circle"></i></button><button title="Editar Ticket" class="edit-ticket-btn text-gray-400 hover:text-blue-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-pencil-alt"></i></button><button title="Apagar Ticket" class="delete-ticket-btn text-gray-400 hover:text-red-500 p-1" data-ticket-id="${ticket.ID_Ticket}"><i class="fas fa-trash"></i></button></div></div>`;
             };
             function buildTicketHtmlRecursive(parentId) {
                 let ticketsForLevel = allClientTickets.filter(ticket => { if (parentId === '0') return ticket.Parent_ID_Ticket == '0' || !ticket.Parent_ID_Ticket; return ticket.Parent_ID_Ticket === parentId; });
