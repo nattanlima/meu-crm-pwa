@@ -246,6 +246,13 @@
         <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-lg md:max-w-4xl max-h-[90vh] flex flex-col transform transition-all duration-300 ease-in-out scale-95 opacity-0"></div>
     </div>
     
+    <!-- NOVO MODAL: Editor de Tarefa/Ticket -->
+    <div id="item-editor-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-30">
+        <div id="item-editor-content" class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all duration-300 ease-in-out scale-95 opacity-0">
+            <!-- Conteúdo do editor será injetado aqui -->
+        </div>
+    </div>
+
     <!-- Modal de Confirmação Genérico -->
     <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center p-4 z-30">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
@@ -279,7 +286,8 @@
         const loaderTemplate = document.getElementById('loader-template');
         const toast = document.getElementById('toast');
         let appData = {};
-        let quillEditor = null;
+        let quillEditor = null; // Editor principal no modal do cliente
+        let itemQuillEditor = null; // Editor secundário no novo modal de item
         let currentUser = null;
         let deferredPrompt;
         let activeTagId = null;
@@ -815,7 +823,6 @@
                 const itemTypeLabel = item.type === 'task' ? 'Tarefa' : 'Ticket';
                 const dueDateTitle = item.PrazoFinal ? new Date(item.PrazoFinal).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'Sem prazo definido';
 
-                // CORREÇÃO: Adicionados botões de ação que aparecem no hover.
                 return `
                     <div class="list-item-row group bg-white rounded-lg p-3 mb-2 shadow-sm border flex items-center gap-4 relative">
                         <!-- Ícone do Tipo -->
@@ -846,7 +853,7 @@
                                     class="w-9 h-9 flex items-center justify-center rounded-full text-green-600 hover:bg-green-100 transition-colors">
                                 <i class="fas fa-check-circle text-xl"></i>
                             </button>
-                            <button onclick="handleListItemClick(event, '${item.ID_Cliente}', '${item.type}', '${item.id}')" title="Editar"
+                            <button onclick="openItemEditorModal(event, '${item.type}', '${item.id}')" title="Editar"
                                     class="w-9 h-9 flex items-center justify-center rounded-full text-blue-600 hover:bg-blue-100 transition-colors">
                                 <i class="fas fa-pencil-alt text-md"></i>
                             </button>
@@ -858,39 +865,16 @@
             container.innerHTML = listHtml;
         }
         
-        // CORREÇÃO: Função agora aceita o ID do item e chama o editor correto
-        function handleListItemClick(event, clientId, itemType, itemId) {
-            event.stopPropagation(); // Impede que outros eventos de clique sejam acionados
-            showClientModal(clientId);
-            // Aguarda o modal ser renderizado para clicar na aba e abrir o editor.
-            setTimeout(() => {
-                const tabToClick = itemType === 'task' ? 'tasks' : 'tickets';
-                const tabButton = document.querySelector(`#modal-tabs button[data-tab="${tabToClick}"]`);
-                if (tabButton && !tabButton.classList.contains('active')) {
-                    tabButton.click();
-                }
-
-                // Chamar a função de editor apropriada
-                if (itemType === 'task') {
-                    showTaskEditor(itemId);
-                } else if (itemType === 'ticket') {
-                    showTicketEditor(itemId);
-                }
-            }, 150);
-        }
-
         // NOVA FUNÇÃO: Marca um item como concluído diretamente da lista
         function handleQuickComplete(event, itemType, itemId) {
             event.stopPropagation();
-            let item, url, itemArray;
+            let item, url;
 
             if (itemType === 'task') {
-                itemArray = appData.tasks;
-                item = itemArray.find(t => t.ID_Tarefa === itemId);
+                item = appData.tasks.find(t => t.ID_Tarefa === itemId);
                 url = `${SCRIPT_URL}?action=updateTask&ID_Tarefa=${itemId}&Concluido=true`;
             } else {
-                itemArray = appData.tickets;
-                item = itemArray.find(t => t.ID_Ticket === itemId);
+                item = appData.tickets.find(t => t.ID_Ticket === itemId);
                 url = `${SCRIPT_URL}?action=updateTicket&ID_Ticket=${itemId}&Concluido=true`;
             }
 
@@ -939,7 +923,15 @@
             const savedUser = localStorage.getItem('crmUser');
             if (savedUser) { currentUser = JSON.parse(savedUser); showApp(true); } else { showLogin(); }
             clientModal.addEventListener('click', (e) => { if (e.target === clientModal) hideClientModal(); });
-            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !clientModal.classList.contains('hidden')) hideClientModal(); });
+            document.addEventListener('keydown', (e) => { 
+                if (e.key === 'Escape') {
+                    if (!document.getElementById('item-editor-modal').classList.contains('hidden')) {
+                        closeItemEditorModal();
+                    } else if (!clientModal.classList.contains('hidden')) {
+                        hideClientModal();
+                    }
+                }
+            });
         });
 
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -990,14 +982,19 @@
             });
         }
 
-        function showClientModal(clientId) {
+        function showClientModal(clientId, onReadyCallback = null) {
             const client = appData.clients.find(c => c.ID_Cliente === clientId); if (!client) return;
             const uncompletedTasksCount = appData.tasks ? appData.tasks.filter(t => t.ID_Cliente === clientId && !t.Concluido).length : 0;
             const uncompletedTicketsCount = appData.tickets ? appData.tickets.filter(t => t.ID_Cliente === clientId && !t.Concluido).length : 0;
             const tasksBadgeHtml = uncompletedTasksCount > 0 ? `<span class="tab-badge">${uncompletedTasksCount}</span>` : '';
             const ticketsBadgeHtml = uncompletedTicketsCount > 0 ? `<span class="tab-badge">${uncompletedTicketsCount}</span>` : '';
             modalContent.innerHTML = ''; modalContent.appendChild(loaderTemplate.content.cloneNode(true));
-            clientModal.classList.remove('hidden'); setTimeout(() => modalContent.classList.remove('scale-95', 'opacity-0'), 10);
+            clientModal.classList.remove('hidden'); 
+            
+            requestAnimationFrame(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+            });
+
             modalContent.innerHTML = `<div class="p-6 border-b flex-shrink-0"><div class="flex justify-between items-start"><div><h2 class="text-3xl font-bold text-gray-800">${client.NomeEmpresa}</h2></div><button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button></div></div><div class="border-b border-gray-200 flex-shrink-0"><nav id="modal-tabs" class="flex space-x-4 px-6 -mb-px overflow-x-auto"><button data-tab="details" class="tab-button active flex-shrink-0">Detalhes</button><button data-tab="tasks" class="tab-button flex-shrink-0 flex items-center">Tarefas ${tasksBadgeHtml}</button><button data-tab="tickets" class="tab-button flex-shrink-0 flex items-center">Tickets ${ticketsBadgeHtml}</button></nav></div><div class="p-6 overflow-y-auto flex-grow"><div id="tab-content-details" class="tab-content active"><div id="modal-form" data-client-id="${clientId}"><div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><div><label class="text-sm font-medium text-gray-700">Nome da Empresa</label><input type="text" id="modal-NomeEmpresa" value="${client.NomeEmpresa || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">CNPJ</label><input type="text" id="modal-CNPJ" value="${client.CNPJ || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">Nome do Responsável</label><input type="text" id="modal-NomeResponsavel" value="${client.NomeResponsavel || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">WhatsApp</label><input type="text" id="modal-WhatsApp" value="${client.WhatsApp || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">E-mail Financeiro</label><input type="text" id="modal-EmailFinanceiro" value="${client.EmailFinanceiro || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">Telefone do Dono</label><input type="text" id="modal-TelefoneDono" value="${client.TelefoneDono || ''}" class="form-input"></div><div class="md:col-span-2"><label class="text-sm font-medium text-gray-700">Link do Grupo WhatsApp</label><input type="text" id="modal-LinkGrupoWhatsApp" value="${client.LinkGrupoWhatsApp || ''}" class="form-input"></div><div><label class="text-sm font-medium text-gray-700">Valor do Contrato</label><input type="text" id="modal-ValorContrato" value="${client.ValorContrato || ''}" class="form-input" placeholder="R$ 0,00"></div><div class="md:col-span-2"><label class="text-sm font-medium text-gray-700">Anotações</label><textarea id="modal-Anotacoes" rows="4" class="form-input">${client.Anotacoes || ''}</textarea></div></div><div class="mt-8 pt-5 border-t flex justify-end items-center gap-3"><span id="save-status" class="text-sm text-green-600"></span><button id="save-client-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white font-bold py-2 px-4 rounded-full flex items-center"><i class="fas fa-save mr-2"></i>Salvar Alterações</button></div></div></div><div id="tab-content-tasks" class="tab-content"><div class="flex justify-between items-center mb-2"><h4 class="font-bold text-gray-600">Tarefas do Projeto</h4><button id="add-main-task-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white text-sm font-bold py-1 px-3 rounded-full flex items-center"><i class="fas fa-plus mr-2"></i>Nova Tarefa</button></div><div id="task-list-container" class="bg-slate-50 p-4 rounded-lg"></div><div id="task-editor-container" class="mt-4 border-t pt-4 hidden"></div></div><div id="tab-content-tickets" class="tab-content"><div class="flex justify-between items-center mb-2"><h4 class="font-bold text-gray-600">Tickets/Chamados</h4><button id="add-main-ticket-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white text-sm font-bold py-1 px-3 rounded-full flex items-center"><i class="fas fa-plus mr-2"></i>Novo Ticket</button></div><div id="ticket-list-container" class="bg-slate-50 p-4 rounded-lg"></div><div id="ticket-editor-container" class="mt-4 border-t pt-4 hidden"></div></div></div>`;
             const tabs = document.querySelectorAll('.tab-button'); const contents = document.querySelectorAll('.tab-content');
             tabs.forEach(tab => { tab.addEventListener('click', () => { tabs.forEach(t => t.classList.remove('active')); contents.forEach(c => c.classList.remove('active')); tab.classList.add('active'); document.getElementById(`tab-content-${tab.dataset.tab}`).classList.add('active'); }); });
@@ -1006,6 +1003,10 @@
             document.getElementById('save-client-btn').addEventListener('click', () => handleSaveClient(clientId));
             document.getElementById('add-main-task-btn').addEventListener('click', () => showNewTaskForm(clientId, '0'));
             document.getElementById('add-main-ticket-btn').addEventListener('click', () => showNewTicketForm(clientId, '0'));
+            
+            if (onReadyCallback) {
+                requestAnimationFrame(onReadyCallback);
+            }
         }
 
         function hideClientModal() {
@@ -1014,14 +1015,12 @@
                 const clientId = form.dataset.clientId;
                 const client = appData.clients.find(c => c.ID_Cliente.toString() === clientId);
                 if (client) {
-                    // Atualiza o card na visão Kanban
                     updateCardOnBoard(client.ID_Cliente);
                 }
             }
             modalContent.classList.add('scale-95', 'opacity-0');
             setTimeout(() => {
                 clientModal.classList.add('hidden');
-                // UPGRADE: Se a visão de lista estiver ativa, atualiza ela para refletir as mudanças
                 if (currentView === 'list') {
                     renderListView();
                 }
@@ -1223,6 +1222,120 @@
                 }
             });
         }
+
+        // --- LÓGICA DO NOVO MODAL DE EDIÇÃO ---
+        function openItemEditorModal(event, itemType, itemId) {
+            event.stopPropagation();
+            const item = itemType === 'task'
+                ? appData.tasks.find(t => t.ID_Tarefa === itemId)
+                : appData.tickets.find(t => t.ID_Ticket === itemId);
+
+            if (!item) return;
+
+            const modal = document.getElementById('item-editor-modal');
+            const content = document.getElementById('item-editor-content');
+            
+            const userOptions = appData.users.map(user => `<option value="${user.ID_Usuario}" ${item.Responsavel_ID === user.ID_Usuario ? 'selected' : ''}>${user.NomeUsuario}</option>`).join('');
+            const dueDateValue = item.PrazoFinal ? new Date(item.PrazoFinal).toISOString().split('T')[0] : '';
+            const titleLabel = itemTypeLabel(itemType);
+            const titleValue = itemType === 'task' ? item.TituloTarefa : item.TituloTicket;
+
+            content.innerHTML = `
+                <div class="p-6 border-b flex justify-between items-center">
+                    <h3 class="text-2xl font-bold text-gray-800">Editar ${titleLabel}</h3>
+                    <button onclick="closeItemEditorModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                </div>
+                <div class="p-6 overflow-y-auto flex-grow" data-item-id="${itemId}" data-item-type="${itemType}">
+                    <input type="text" id="item-editor-title" value="${titleValue}" class="form-input w-full mb-4 text-lg font-semibold" placeholder="Título">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-700">Responsável</label>
+                            <select id="item-editor-responsible" class="form-input"><option value="">Ninguém</option>${userOptions}</select>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700">Prazo Final</label>
+                            <input type="date" id="item-editor-due-date" value="${dueDateValue}" class="form-input">
+                        </div>
+                    </div>
+                    <div class="mt-4" id="quill-editor-item"></div>
+                </div>
+                <div class="p-4 bg-slate-50 border-t flex justify-end">
+                    <button id="save-item-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white font-bold py-2 px-4 rounded-full">Salvar Alterações</button>
+                </div>
+            `;
+
+            itemQuillEditor = new Quill('#quill-editor-item', { theme: 'snow' });
+            if (item.DescricaoDetalhada) {
+                itemQuillEditor.root.innerHTML = item.DescricaoDetalhada;
+            }
+
+            document.getElementById('save-item-btn').addEventListener('click', saveItemFromEditor);
+
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+            });
+        }
+
+        function closeItemEditorModal() {
+            const modal = document.getElementById('item-editor-modal');
+            const content = document.getElementById('item-editor-content');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                content.innerHTML = '';
+                itemQuillEditor = null;
+            }, 300);
+        }
+
+        function saveItemFromEditor() {
+            const content = document.getElementById('item-editor-content').querySelector('[data-item-id]');
+            const itemId = content.dataset.itemId;
+            const itemType = content.dataset.itemType;
+
+            const title = document.getElementById('item-editor-title').value;
+            const description = itemQuillEditor.root.innerHTML;
+            const responsibleId = document.getElementById('item-editor-responsible').value;
+            const dueDate = document.getElementById('item-editor-due-date').value;
+
+            let item, url, idField, titleField;
+
+            if (itemType === 'task') {
+                item = appData.tasks.find(t => t.ID_Tarefa === itemId);
+                idField = 'ID_Tarefa';
+                titleField = 'TituloTarefa';
+            } else {
+                item = appData.tickets.find(t => t.ID_Ticket === itemId);
+                idField = 'ID_Ticket';
+                titleField = 'TituloTicket';
+            }
+
+            if (!item) return;
+
+            // Atualiza os dados locais (otimista)
+            item[titleField] = title;
+            item.DescricaoDetalhada = description;
+            item.Responsavel_ID = responsibleId;
+            item.PrazoFinal = dueDate;
+
+            url = `${SCRIPT_URL}?action=${itemType === 'task' ? 'updateTask' : 'updateTicket'}&${idField}=${itemId}&${titleField}=${encodeURIComponent(title)}&DescricaoDetalhada=${encodeURIComponent(description)}&Responsavel_ID=${encodeURIComponent(responsibleId)}&PrazoFinal=${encodeURIComponent(dueDate)}`;
+
+            jsonpRequest(url, (err, data) => {
+                if (err || !data.success) {
+                    showToast(`Erro ao salvar ${itemTypeLabel(itemType)}.`);
+                    // Idealmente, aqui deveria haver uma lógica para reverter os dados locais
+                    // Mas por simplicidade, vamos apenas recarregar tudo
+                    initializeApp(); 
+                } else {
+                    showToast(`${itemTypeLabel(itemType)} salvo com sucesso!`);
+                }
+            });
+
+            closeItemEditorModal();
+            renderListView();
+            updateCardOnBoard(item.ID_Cliente);
+        }
+
     </script>
 </body>
 </html>
