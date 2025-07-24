@@ -20,7 +20,7 @@
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     
-    <!-- NOVO: FullCalendar.io para a visão de calendário -->
+    <!-- FullCalendar.io para a visão de calendário -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -43,7 +43,7 @@
         }
         @media (max-width: 767px) {
             #kanban-board {
-                height: calc(100vh - 125px); /* Altura do header em mobile */
+                height: calc(100vh - 115px); /* Altura do header em mobile (ajustada) */
             }
         }
         .kanban-column {
@@ -99,13 +99,13 @@
             background-color: #f1f5f9; /* slate-100 */
         }
         
-        /* UPGRADE: Estilo para a nova visão de lista */
+        /* Estilo para a nova visão de lista */
         .list-item-row { transition: all 0.2s ease-in-out; }
         .list-item-row:hover {
              transform: translateY(-2px);
         }
 
-        /* --- NOVO: ESTILOS PARA A VISÃO DE CALENDÁRIO --- */
+        /* --- ESTILOS PARA A VISÃO DE CALENDÁRIO --- */
         #calendar-view {
             overflow-y: auto;
         }
@@ -125,7 +125,7 @@
         .calendar-tab-content.active { display: block; }
         #google-calendar-iframe {
             width: 100%;
-            height: calc(100vh - 200px); /* Ajuste conforme necessário */
+            height: calc(100vh - 220px); /* Ajuste conforme necessário */
             border: 0;
         }
          /* Estilos do FullCalendar */
@@ -134,17 +134,18 @@
             --fc-daygrid-event-dot-width: 8px;
             --fc-list-event-hover-bg-color: #f1f5f9;
         }
-        .fc .fc-toolbar-title { font-size: 1.5em; font-weight: 600; }
+        .fc .fc-toolbar-title { font-size: 1.25em; font-weight: 600; }
         .fc .fc-button-primary {
             background-color: #2fc36a !important;
             border-color: #2fc36a !important;
             color: white !important;
+            font-size: 0.875rem !important;
         }
         .fc .fc-button-primary:not(:disabled).fc-button-active, .fc .fc-button-primary:not(:disabled):active {
              background-color: #29a85b !important;
              border-color: #29a85b !important;
         }
-        .fc-event { cursor: pointer; }
+        .fc-event { cursor: pointer; border-radius: 4px !important; }
 
         /* --- OUTROS ESTILOS --- */
         .kanban-card { user-select: none; }
@@ -223,16 +224,16 @@
     </div>
 
     <div id="crm-app" class="hidden h-full flex flex-col">
-        <header class="bg-white p-4 flex flex-wrap gap-4 justify-between items-center border-b border-slate-200 flex-shrink-0">
+        <header class="bg-white p-2 sm:p-4 flex flex-wrap gap-2 sm:gap-4 justify-between items-center border-b border-slate-200 flex-shrink-0">
             <div class="flex items-center space-x-3">
                 <img src="https://crm.prismeapp.com.br/web/binary/company_logo" alt="Logo Prisme Sales" class="h-8 w-auto" onerror="this.style.display='none'">
-                <h1 class="text-xl md:text-2xl font-bold text-gray-800">Seu CRM</h1>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800 hidden sm:block">Seu CRM</h1>
             </div>
             
             <div class="w-full md:w-auto md:flex-1 flex justify-center px-0 md:px-4 order-3 md:order-2">
                 <div class="flex items-center gap-2 w-full max-w-lg">
                     <div id="filter-container" class="relative flex-shrink-0">
-                         <button id="filter-trigger-btn" data-active-tag-id="" class="flex items-center justify-center w-full px-4 py-2 border border-gray-300 rounded-full bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                         <button id="filter-trigger-btn" data-active-tag-id="" class="flex items-center justify-center w-full px-3 py-2 border border-gray-300 rounded-full bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
                              <span id="filter-btn-text">TODOS</span>
                              <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
                          </button>
@@ -245,9 +246,9 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fas fa-search text-gray-400"></i>
                         </div>
-                        <input type="search" id="search-input" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400" placeholder="Pesquisar por empresa...">
+                        <input type="search" id="search-input" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400" placeholder="Pesquisar...">
                     </div>
-                    <!-- NOVO: Grupo de botões de visualização -->
+                    <!-- Grupo de botões de visualização -->
                     <div class="flex items-center border border-gray-300 rounded-full bg-white p-0.5">
                         <button id="kanban-view-btn" class="view-toggle-btn active flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-700" title="Visão Kanban">
                             <i class="fas fa-table-columns text-base"></i>
@@ -262,7 +263,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center space-x-4 justify-end order-2 md:order-3">
+            <div class="flex items-center space-x-2 sm:space-x-4 justify-end order-2 md:order-3">
                 <button id="install-pwa-header-button" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full" title="Instalar App">
                     <i class="fas fa-download"></i>
                 </button>
@@ -282,10 +283,10 @@
             </div>
         </header>
 
-        <main id="kanban-board" class="kanban-board-container flex space-x-4 p-4 flex-grow"></main>
+        <main id="kanban-board" class="kanban-board-container flex space-x-2 sm:space-x-4 p-2 sm:p-4 flex-grow"></main>
 
         <div id="list-view" class="hidden flex-grow flex flex-col bg-slate-50 overflow-hidden">
-            <div id="list-view-container-wrapper" class="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex-grow flex flex-col overflow-y-auto">
+            <div id="list-view-container-wrapper" class="w-full max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-2 sm:py-4 flex-grow flex flex-col overflow-y-auto">
                 <div id="list-view-filters" class="p-3 mb-4 bg-white border border-slate-200 rounded-lg flex-shrink-0 flex flex-wrap gap-3 items-center">
                     <span class="font-semibold text-gray-700 hidden md:inline">Filtros:</span>
                     <div class="relative">
@@ -305,8 +306,7 @@
             </div>
         </div>
         
-        <!-- NOVO: Container da Visão de Calendário -->
-        <div id="calendar-view" class="hidden flex-grow flex flex-col bg-slate-50 overflow-hidden p-4">
+        <div id="calendar-view" class="hidden flex-grow flex flex-col bg-slate-50 overflow-hidden p-2 sm:p-4">
              <div class="border-b border-gray-200 mb-4">
                 <nav id="calendar-tabs" class="flex space-x-4 -mb-px">
                     <button data-tab="internal" class="calendar-tab-button active">Tarefas & Tickets</button>
@@ -314,16 +314,11 @@
                 </nav>
             </div>
             <div id="calendar-tab-internal" class="calendar-tab-content active flex-grow">
-                <div id="fullcalendar-container" class="bg-white p-4 rounded-lg shadow-sm h-full"></div>
+                <div id="fullcalendar-container" class="bg-white p-1 sm:p-4 rounded-lg shadow-sm h-full"></div>
             </div>
             <div id="calendar-tab-google" class="calendar-tab-content">
                 <div class="bg-white p-4 rounded-lg shadow-sm">
-                    <p class="text-gray-600 mb-4">Para visualizar a agenda, certifique-se de que a agenda de <code class="bg-gray-200 p-1 rounded">call@prismeapp.com.br</code> está pública e insira o código de incorporação abaixo.</p>
-                    <!-- 
-                        INSTRUÇÃO: Vá para o Google Calendar, nas configurações da agenda 'call@prismeapp.com.br', 
-                        torne-a pública e copie o código do iframe de incorporação aqui.
-                        Exemplo: <iframe src="https://calendar.google.com/calendar/embed?src=..."></iframe>
-                    -->
+                    <p class="text-gray-600 mb-4">Para visualizar a agenda, certifique-se de que a agenda de <code class="bg-gray-200 p-1 rounded">call@prismeapp.com.br</code> está pública.</p>
                     <iframe id="google-calendar-iframe"
                         src="https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FSao_Paulo&bgcolor=%23ffffff&src=Y2FsbEBwcmlzbWVhcHAuY29tLmJy&color=%23039BE5"
                         style="border:solid 1px #777" width="800" height="600" frameborder="0" scrolling="no">
@@ -402,7 +397,6 @@
         let isFetchingMore = false;
         
         const listView = document.getElementById('list-view');
-        // NOVO: Referências para a visão de calendário
         const calendarView = document.getElementById('calendar-view');
         let calendarInstance = null;
 
@@ -669,7 +663,7 @@
             kanbanBoard.innerHTML = '';
             appData.statuses.sort((a, b) => a.ordem - b.ordem).forEach(status => {
                 const column = document.createElement('div');
-                column.className = 'kanban-column bg-slate-100 rounded-lg p-3 w-[90vw] md:w-80 flex-shrink-0 transition-all duration-300';
+                column.className = 'kanban-column bg-slate-100 rounded-lg p-3 w-[88vw] sm:w-80 flex-shrink-0 transition-all duration-300';
                 const clientsInStatus = clientList.filter(c => c.status === status.nome_status);
                 const initialClients = clientsInStatus.slice(0, CARDS_TO_SHOW_INITIAL);
                 column.innerHTML = `
@@ -858,7 +852,7 @@
             initializeMainEventListeners();
             setupListViewInteractions();
             setupViewToggle();
-            setupCalendarViewInteractions(); // NOVO
+            setupCalendarViewInteractions();
 
             const savedUser = localStorage.getItem('crmUser');
             if (savedUser) { 
@@ -903,7 +897,7 @@
             return Math.round((completedTasks / tasks.length) * 100);
         }
 
-        // --- LÓGICA DE TROCA DE VISUALIZAÇÃO (ATUALIZADA) ---
+        // --- LÓGICA DE TROCA DE VISUALIZAÇÃO ---
         function setupViewToggle() {
             document.querySelectorAll('.view-toggle-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -916,18 +910,15 @@
         function switchView(viewName) {
             currentView = viewName;
             
-            // Esconde todas as visualizações principais
             kanbanBoard.classList.add('hidden');
             listView.classList.add('hidden');
             calendarView.classList.add('hidden');
 
-            // Remove a classe 'active' de todos os botões
             document.querySelectorAll('.view-toggle-btn').forEach(btn => {
                 btn.classList.remove('active', 'bg-gray-100', 'text-gray-700');
                 btn.classList.add('bg-white', 'text-gray-500', 'hover:bg-gray-100');
             });
             
-            // Mostra a visualização selecionada e ativa o botão correspondente
             const activeBtn = document.getElementById(`${viewName}-view-btn`);
             if (activeBtn) {
                 activeBtn.classList.add('active', 'bg-gray-100', 'text-gray-700');
@@ -968,18 +959,18 @@
             modalContent.innerHTML = `
                 <div class="p-6 border-b flex-shrink-0">
                     <div class="flex justify-between items-start">
-                        <div><h2 class="text-3xl font-bold text-gray-800">${client.nome_empresa}</h2></div>
+                        <div><h2 class="text-2xl sm:text-3xl font-bold text-gray-800">${client.nome_empresa}</h2></div>
                         <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
                     </div>
                 </div>
                 <div class="border-b border-gray-200 flex-shrink-0">
-                    <nav id="modal-tabs" class="flex space-x-4 px-6 -mb-px overflow-x-auto">
+                    <nav id="modal-tabs" class="flex space-x-2 sm:space-x-4 px-4 sm:px-6 -mb-px overflow-x-auto">
                         <button data-tab="details" class="tab-button active flex-shrink-0">Detalhes</button>
                         <button data-tab="tasks" class="tab-button flex-shrink-0 flex items-center">Tarefas ${tasksBadgeHtml}</button>
                         <button data-tab="tickets" class="tab-button flex-shrink-0 flex items-center">Tickets ${ticketsBadgeHtml}</button>
                     </nav>
                 </div>
-                <div class="p-6 overflow-y-auto flex-grow">
+                <div class="p-4 sm:p-6 overflow-y-auto flex-grow">
                     <div id="tab-content-details" class="tab-content active">
                         <div id="modal-form" data-client-id="${clientId}">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -1004,7 +995,7 @@
                             <h4 class="font-bold text-gray-600">Tarefas do Projeto</h4>
                             <button id="add-main-task-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white text-sm font-bold py-1 px-3 rounded-full flex items-center"><i class="fas fa-plus mr-2"></i>Nova Tarefa</button>
                         </div>
-                        <div id="task-list-container" class="bg-slate-50 p-4 rounded-lg"></div>
+                        <div id="task-list-container" class="bg-slate-50 p-2 sm:p-4 rounded-lg"></div>
                         <div id="task-editor-container" class="mt-4 border-t pt-4 hidden"></div>
                     </div>
                     <div id="tab-content-tickets" class="tab-content">
@@ -1012,7 +1003,7 @@
                             <h4 class="font-bold text-gray-600">Tickets/Chamados</h4>
                             <button id="add-main-ticket-btn" class="bg-[#2fc36a] hover:bg-[#29a85b] text-white text-sm font-bold py-1 px-3 rounded-full flex items-center"><i class="fas fa-plus mr-2"></i>Novo Ticket</button>
                         </div>
-                        <div id="ticket-list-container" class="bg-slate-50 p-4 rounded-lg"></div>
+                        <div id="ticket-list-container" class="bg-slate-50 p-2 sm:p-4 rounded-lg"></div>
                         <div id="ticket-editor-container" class="mt-4 border-t pt-4 hidden"></div>
                     </div>
                 </div>`;
@@ -1602,15 +1593,15 @@
                 : `<div class="w-8 text-center" title="Ticket"><i class="fas fa-ticket text-orange-400"></i></div>`;
 
             return `
-                <div class="list-item-row flex items-center p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md hover:border-green-400 cursor-pointer" data-item-id="${item.id}" data-item-type="${item.type}" data-client-id="${item.clientId}">
-                    <div class="flex-shrink-0 pr-4">
+                <div class="list-item-row flex items-center p-3 sm:p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md hover:border-green-400 cursor-pointer" data-item-id="${item.id}" data-item-type="${item.type}" data-client-id="${item.clientId}">
+                    <div class="flex-shrink-0 pr-3">
                         <input type="checkbox" class="list-item-checkbox h-5 w-5 rounded border-gray-400 text-green-600 focus:ring-green-500 cursor-pointer" data-item-id="${item.id}" data-item-type="${item.type}" ${item.completed ? 'checked' : ''}>
                     </div>
                     <div class="flex-grow min-w-0">
                         <p class="font-semibold text-gray-800 truncate ${item.completed ? 'line-through text-gray-500 font-normal' : ''}" title="${item.title}">${item.title}</p>
                         <p class="text-sm text-gray-500 truncate">${client ? client.nome_empresa : 'Cliente não encontrado'}</p>
                     </div>
-                    <div class="flex-shrink-0 flex items-center space-x-3 sm:space-x-4 pl-4 ml-auto">
+                    <div class="flex-shrink-0 flex items-center space-x-2 sm:space-x-4 pl-3 ml-auto">
                         ${iconHtml}
                         <span class="text-sm w-28 text-right hidden sm:block ${timeInfo.colorClass} ${timeInfo.pulse ? 'pulse-animation' : ''}">${timeInfo.text}</span>
                         <div class="w-8 h-8 flex-shrink-0">
@@ -1735,11 +1726,9 @@
                 
                 const tabName = button.dataset.tab;
                 
-                // Atualiza botões
                 tabsContainer.querySelectorAll('.calendar-tab-button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
                 
-                // Atualiza conteúdo
                 document.querySelectorAll('.calendar-tab-content').forEach(content => content.classList.remove('active'));
                 document.getElementById(`calendar-tab-${tabName}`).classList.add('active');
             });
@@ -1757,7 +1746,6 @@
         function getCalendarEvents() {
             const events = [];
             
-            // Mapeia tarefas
             (appData.tasks || []).forEach(task => {
                 if (task.prazo_final) {
                     const client = appData.clients.find(c => c.id_cliente === task.id_cliente);
@@ -1777,7 +1765,6 @@
                 }
             });
 
-            // Mapeia tickets
             (appData.tickets || []).forEach(ticket => {
                 if (ticket.prazo_final) {
                     const client = appData.clients.find(c => c.id_cliente === ticket.id_cliente);
@@ -1833,7 +1820,6 @@
                     });
                 },
                 eventDidMount: function(info) {
-                    // Adiciona um tooltip simples
                     info.el.setAttribute('title', `${info.event.title}\nCliente: ${info.event.extendedProps.clientName}`);
                 }
             });
@@ -1908,7 +1894,7 @@
                 </div>
                 <div class="p-4 border-t bg-slate-50 flex justify-end items-center gap-3 flex-shrink-0">
                     <button type="button" onclick="closeItemEditorModal()" class="px-4 py-2 text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-full font-semibold">Cancelar</button>
-                    <button type="button" id="save-item-btn" class="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-full font-semibold flex items-center justify-center">Salvar Alterações</button>
+                    <button type="button" id="save-item-btn" class="px-4 py-2 text-white bg-[#2fc36a] hover:bg-[#29a85b] rounded-full font-semibold flex items-center justify-center">Salvar Alterações</button>
                 </div>
             `;
 
