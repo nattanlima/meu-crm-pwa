@@ -20,6 +20,9 @@
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     
+    <!-- NOVO: FullCalendar.io para a visão de calendário -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* --- ESTILOS GERAIS E MELHORIAS DE LAYOUT --- */
@@ -63,9 +66,9 @@
             max-height: 45vh;
             overflow-y: auto;
         }
-        #list-view-container-wrapper::-webkit-scrollbar { width: 8px; }
-        #list-view-container-wrapper::-webkit-scrollbar-track { background: #f1f5f9; }
-        #list-view-container-wrapper::-webkit-scrollbar-thumb { background: #a3a3a3; border-radius: 4px; }
+        #list-view-container-wrapper::-webkit-scrollbar, #calendar-view::-webkit-scrollbar { width: 8px; }
+        #list-view-container-wrapper::-webkit-scrollbar-track, #calendar-view::-webkit-scrollbar-track { background: #f1f5f9; }
+        #list-view-container-wrapper::-webkit-scrollbar-thumb, #calendar-view::-webkit-scrollbar-thumb { background: #a3a3a3; border-radius: 4px; }
         
         #task-list-container::-webkit-scrollbar, #ticket-list-container::-webkit-scrollbar { width: 6px; }
         #task-list-container::-webkit-scrollbar-track, #ticket-list-container::-webkit-scrollbar-track { background: #e2e8f0; }
@@ -101,6 +104,47 @@
         .list-item-row:hover {
              transform: translateY(-2px);
         }
+
+        /* --- NOVO: ESTILOS PARA A VISÃO DE CALENDÁRIO --- */
+        #calendar-view {
+            overflow-y: auto;
+        }
+        .calendar-tab-button {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            color: #737373; /* neutral-500 */
+            font-weight: 500;
+        }
+        .calendar-tab-button.active {
+            border-color: #2fc36a; /* sua cor principal */
+            color: #15803d; /* green-700 */
+            font-weight: 600;
+        }
+        .calendar-tab-content { display: none; }
+        .calendar-tab-content.active { display: block; }
+        #google-calendar-iframe {
+            width: 100%;
+            height: calc(100vh - 200px); /* Ajuste conforme necessário */
+            border: 0;
+        }
+         /* Estilos do FullCalendar */
+        :root {
+            --fc-border-color: #e2e8f0;
+            --fc-daygrid-event-dot-width: 8px;
+            --fc-list-event-hover-bg-color: #f1f5f9;
+        }
+        .fc .fc-toolbar-title { font-size: 1.5em; font-weight: 600; }
+        .fc .fc-button-primary {
+            background-color: #2fc36a !important;
+            border-color: #2fc36a !important;
+            color: white !important;
+        }
+        .fc .fc-button-primary:not(:disabled).fc-button-active, .fc .fc-button-primary:not(:disabled):active {
+             background-color: #29a85b !important;
+             border-color: #29a85b !important;
+        }
+        .fc-event { cursor: pointer; }
 
         /* --- OUTROS ESTILOS --- */
         .kanban-card { user-select: none; }
@@ -203,9 +247,18 @@
                         </div>
                         <input type="search" id="search-input" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400" placeholder="Pesquisar por empresa...">
                     </div>
-                    <button id="view-toggle-btn" class="flex-shrink-0 flex items-center justify-center w-11 h-11 border border-gray-300 rounded-full bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors" title="Alternar para Visão de Lista">
-                        <i id="view-toggle-icon" class="fas fa-list-check text-lg"></i>
-                    </button>
+                    <!-- NOVO: Grupo de botões de visualização -->
+                    <div class="flex items-center border border-gray-300 rounded-full bg-white p-0.5">
+                        <button id="kanban-view-btn" class="view-toggle-btn active flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-700" title="Visão Kanban">
+                            <i class="fas fa-table-columns text-base"></i>
+                        </button>
+                        <button id="list-view-btn" class="view-toggle-btn flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-white text-gray-500 hover:bg-gray-100" title="Visão de Lista">
+                            <i class="fas fa-list-check text-base"></i>
+                        </button>
+                        <button id="calendar-view-btn" class="view-toggle-btn flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-white text-gray-500 hover:bg-gray-100" title="Visão de Calendário">
+                            <i class="fas fa-calendar-days text-base"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -251,6 +304,34 @@
                     </div>
             </div>
         </div>
+        
+        <!-- NOVO: Container da Visão de Calendário -->
+        <div id="calendar-view" class="hidden flex-grow flex flex-col bg-slate-50 overflow-hidden p-4">
+             <div class="border-b border-gray-200 mb-4">
+                <nav id="calendar-tabs" class="flex space-x-4 -mb-px">
+                    <button data-tab="internal" class="calendar-tab-button active">Tarefas & Tickets</button>
+                    <button data-tab="google" class="calendar-tab-button">Agenda Google</button>
+                </nav>
+            </div>
+            <div id="calendar-tab-internal" class="calendar-tab-content active flex-grow">
+                <div id="fullcalendar-container" class="bg-white p-4 rounded-lg shadow-sm h-full"></div>
+            </div>
+            <div id="calendar-tab-google" class="calendar-tab-content">
+                <div class="bg-white p-4 rounded-lg shadow-sm">
+                    <p class="text-gray-600 mb-4">Para visualizar a agenda, certifique-se de que a agenda de <code class="bg-gray-200 p-1 rounded">call@prismeapp.com.br</code> está pública e insira o código de incorporação abaixo.</p>
+                    <!-- 
+                        INSTRUÇÃO: Vá para o Google Calendar, nas configurações da agenda 'call@prismeapp.com.br', 
+                        torne-a pública e copie o código do iframe de incorporação aqui.
+                        Exemplo: <iframe src="https://calendar.google.com/calendar/embed?src=..."></iframe>
+                    -->
+                    <iframe id="google-calendar-iframe"
+                        src="https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FSao_Paulo&bgcolor=%23ffffff&src=Y2FsbEBwcmlzbWVhcHAuY29tLmJy&color=%23039BE5"
+                        style="border:solid 1px #777" width="800" height="600" frameborder="0" scrolling="no">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-20">
@@ -313,7 +394,7 @@
         let currentUser = null;
         let deferredPrompt;
         let activeTagId = null;
-        let currentView = 'kanban';
+        let currentView = 'kanban'; // kanban, list, calendar
         
         let listFilterType = 'all';
         let listFilterResponsibleId = 'all';
@@ -321,8 +402,9 @@
         let isFetchingMore = false;
         
         const listView = document.getElementById('list-view');
-        const viewToggleButton = document.getElementById('view-toggle-btn');
-        const viewToggleIcon = document.getElementById('view-toggle-icon');
+        // NOVO: Referências para a visão de calendário
+        const calendarView = document.getElementById('calendar-view');
+        let calendarInstance = null;
 
         // --- FUNÇÕES DE UTILIDADE ---
         function showToast(message) {
@@ -458,17 +540,11 @@
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'cliente_tags' }, payload => {
                     console.log('Alteração em cliente_tags:', payload);
                     const { eventType, new: newRecord, old: oldRecord } = payload;
-                    if (eventType === 'INSERT') {
-                        const exists = appData.client_tags.some(ct => ct.id_cliente === newRecord.id_cliente && ct.id_tag === newRecord.id_tag);
-                        if (!exists) {
-                            appData.client_tags.push(newRecord);
-                        }
-                    } else if (eventType === 'DELETE') {
-                        // A chave primária composta está em `old.keys` ou `old.old_record` dependendo da versão/config do Supabase
-                        const oldData = oldRecord.old_record || oldRecord;
-                        if (oldData && oldData.id_cliente && oldData.id_tag) {
-                             appData.client_tags = appData.client_tags.filter(ct => !(ct.id_cliente === oldData.id_cliente && ct.id_tag === oldData.id_tag));
-                        }
+                    if (eventType === 'INSERT') appData.client_tags.push(newRecord);
+                    if (eventType === 'DELETE') {
+                        const oldIdCliente = oldRecord.old_id_cliente || (oldRecord.id_cliente);
+                        const oldIdTag = oldRecord.old_id_tag || (oldRecord.id_tag);
+                        appData.client_tags = appData.client_tags.filter(ct => !(ct.id_cliente === oldIdCliente && ct.id_tag === oldIdTag));
                     }
                     applyFiltersAndRender();
                 })
@@ -515,18 +591,17 @@
             if (!clientModal.classList.contains('hidden')) {
                 const form = modalContent.querySelector('#modal-form');
                 if (form && form.dataset.clientId) {
-                    const clientId = form.dataset.clientId;
-                    const client = appData.clients.find(c => c.id_cliente.toString() === clientId);
-                    if (client) {
-                        // Re-renderiza o modal para atualizar as informações, incluindo o gerenciador de tags
-                        showClientModal(clientId);
-                    }
+                      const client = appData.clients.find(c => c.id_cliente.toString() === form.dataset.clientId);
+                      if(client) showClientModal(client.id_cliente);
                 }
             }
+            
             if (currentView === 'kanban') {
                 renderBoard(getFilteredClients());
-            } else {
+            } else if (currentView === 'list') {
                 renderListView();
+            } else if (currentView === 'calendar') {
+                renderCalendarView();
             }
         }
 
@@ -783,6 +858,7 @@
             initializeMainEventListeners();
             setupListViewInteractions();
             setupViewToggle();
+            setupCalendarViewInteractions(); // NOVO
 
             const savedUser = localStorage.getItem('crmUser');
             if (savedUser) { 
@@ -827,120 +903,50 @@
             return Math.round((completedTasks / tasks.length) * 100);
         }
 
+        // --- LÓGICA DE TROCA DE VISUALIZAÇÃO (ATUALIZADA) ---
         function setupViewToggle() {
-            viewToggleButton.addEventListener('click', () => {
-                if (currentView === 'kanban') {
-                    currentView = 'list';
-                    kanbanBoard.classList.add('hidden');
-                    listView.classList.remove('hidden');
-                    viewToggleIcon.className = 'fas fa-table-columns text-lg';
-                    viewToggleButton.title = 'Alternar para Visão Kanban';
-                    populateListViewFilters();
-                    renderListView();
-                } else {
-                    currentView = 'kanban';
-                    listView.classList.add('hidden');
-                    kanbanBoard.classList.remove('hidden');
-                    viewToggleIcon.className = 'fas fa-list-check text-lg';
-                    viewToggleButton.title = 'Alternar para Visão de Lista';
-                    applyFiltersAndRender();
-                }
-            });
-        }
-
-        // --- FUNÇÕES DO MODAL DO CLIENTE E GERENCIADOR DE TAGS ---
-
-        async function handleAddTag(clientId, tagId) {
-            try {
-                const { error } = await dbClient
-                    .from('cliente_tags')
-                    .insert({ id_cliente: clientId, id_tag: tagId });
-
-                if (error) throw error;
-                showToast('Tag adicionada com sucesso!');
-
-            } catch (error) {
-                console.error('Erro ao adicionar tag:', error);
-                showToast('Erro ao adicionar a tag.');
-            }
-        }
-
-        async function handleRemoveTag(clientId, tagId) {
-            const tag = appData.tags.find(t => t.id_tag == tagId);
-            const tagName = tag ? tag.nome_tag : 'esta tag';
-            showConfirmationModal(`Tem certeza que deseja remover a tag "${tagName}"?`, async () => {
-                try {
-                    const { error } = await dbClient
-                        .from('cliente_tags')
-                        .delete()
-                        .match({ id_cliente: clientId, id_tag: tagId });
-                    
-                    if (error) throw error;
-                    showToast('Tag removida com sucesso!');
-
-                } catch (error) {
-                    console.error('Erro ao remover tag:', error);
-                    showToast('Erro ao remover a tag.');
-                }
-            });
-        }
-
-        function renderTagManager(clientId) {
-            const container = document.getElementById('modal-tags-manager');
-            if (!container) return;
-
-            const clientTagsIds = appData.client_tags
-                .filter(ct => ct.id_cliente == clientId)
-                .map(ct => ct.id_tag);
-
-            const clientTags = appData.tags.filter(t => clientTagsIds.includes(t.id_tag));
-            const availableTags = appData.tags.filter(t => !clientTagsIds.includes(t.id_tag));
-
-            const tagsHtml = clientTags.map(tag => `
-                <span class="flex items-center text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap" style="background-color:${tag.cor}20; color:${tag.cor};">
-                    ${tag.nome_tag}
-                    <button class="ml-1.5 -mr-0.5 text-sm leading-none opacity-60 hover:opacity-100" data-tag-id="${tag.id_tag}" title="Remover Tag">&times;</button>
-                </span>
-            `).join('');
-
-            const optionsHtml = availableTags.length > 0 
-                ? availableTags.map(tag => `<option value="${tag.id_tag}">${tag.nome_tag}</option>`).join('')
-                : '<option disabled>Nenhuma tag disponível</option>';
-
-            const addTagHtml = `
-                <div class="relative inline-block">
-                    <select id="add-tag-select" class="form-input !m-0 !py-1 !px-2 !pr-7 !text-xs" ${availableTags.length === 0 ? 'disabled' : ''}>
-                        <option value="">Adicionar tag...</option>
-                        ${optionsHtml}
-                    </select>
-                </div>
-            `;
-
-            container.innerHTML = `
-                <div class="flex items-center gap-2 flex-wrap justify-end">
-                    ${tagsHtml}
-                    ${addTagHtml}
-                </div>
-            `;
-
-            container.querySelectorAll('button[data-tag-id]').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const tagId = e.currentTarget.dataset.tagId;
-                    handleRemoveTag(clientId, tagId);
+            document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const viewName = e.currentTarget.id.replace('-view-btn', ''); // kanban, list, calendar
+                    switchView(viewName);
                 });
             });
-
-            const select = document.getElementById('add-tag-select');
-            if (select) {
-                select.addEventListener('change', (e) => {
-                    const tagId = e.target.value;
-                    if (tagId) {
-                        handleAddTag(clientId, tagId);
-                        e.target.value = ""; // Reset select
-                    }
-                });
-            }
         }
+
+        function switchView(viewName) {
+            currentView = viewName;
+            
+            // Esconde todas as visualizações principais
+            kanbanBoard.classList.add('hidden');
+            listView.classList.add('hidden');
+            calendarView.classList.add('hidden');
+
+            // Remove a classe 'active' de todos os botões
+            document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-gray-100', 'text-gray-700');
+                btn.classList.add('bg-white', 'text-gray-500', 'hover:bg-gray-100');
+            });
+            
+            // Mostra a visualização selecionada e ativa o botão correspondente
+            const activeBtn = document.getElementById(`${viewName}-view-btn`);
+            if (activeBtn) {
+                activeBtn.classList.add('active', 'bg-gray-100', 'text-gray-700');
+                activeBtn.classList.remove('bg-white', 'text-gray-500', 'hover:bg-gray-100');
+            }
+
+            if (viewName === 'kanban') {
+                kanbanBoard.classList.remove('hidden');
+            } else if (viewName === 'list') {
+                listView.classList.remove('hidden');
+                populateListViewFilters();
+            } else if (viewName === 'calendar') {
+                calendarView.classList.remove('hidden');
+            }
+            
+            applyFiltersAndRender();
+        }
+
+        // --- FUNÇÕES DO MODAL DO CLIENTE ---
 
         function showClientModal(clientId, onReadyCallback = null) {
             const client = appData.clients.find(c => c.id_cliente == clientId); 
@@ -951,25 +957,19 @@
             const tasksBadgeHtml = uncompletedTasksCount > 0 ? `<span class="tab-badge">${uncompletedTasksCount}</span>` : '';
             const ticketsBadgeHtml = uncompletedTicketsCount > 0 ? `<span class="tab-badge">${uncompletedTicketsCount}</span>` : '';
             
-            const isModalAlreadyOpen = !clientModal.classList.contains('hidden');
-            if (!isModalAlreadyOpen) {
-                modalContent.innerHTML = ''; 
-                modalContent.appendChild(loaderTemplate.content.cloneNode(true));
-                clientModal.classList.remove('hidden');   
-                
-                requestAnimationFrame(() => {
-                    modalContent.classList.remove('scale-95', 'opacity-0');
-                });
-            }
+            modalContent.innerHTML = ''; 
+            modalContent.appendChild(loaderTemplate.content.cloneNode(true));
+            clientModal.classList.remove('hidden');  
+            
+            requestAnimationFrame(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+            });
 
             modalContent.innerHTML = `
                 <div class="p-6 border-b flex-shrink-0">
-                    <div class="flex justify-between items-start gap-4">
-                        <div class="flex-shrink-0"><h2 class="text-3xl font-bold text-gray-800">${client.nome_empresa}</h2></div>
-                        <div class="flex-grow flex items-center justify-end gap-4">
-                            <div id="modal-tags-manager" class="flex-grow min-w-0"></div>
-                            <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl flex-shrink-0">&times;</button>
-                        </div>
+                    <div class="flex justify-between items-start">
+                        <div><h2 class="text-3xl font-bold text-gray-800">${client.nome_empresa}</h2></div>
+                        <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
                     </div>
                 </div>
                 <div class="border-b border-gray-200 flex-shrink-0">
@@ -1017,8 +1017,6 @@
                     </div>
                 </div>`;
             
-            renderTagManager(clientId);
-
             const tabs = document.querySelectorAll('.tab-button'); 
             const contents = document.querySelectorAll('.tab-content');
             tabs.forEach(tab => { 
@@ -1584,9 +1582,6 @@
             typeFilter.addEventListener('change', filterHandler);
         }
 
-        // ==========================================================
-        // INÍCIO DAS NOVAS MELHORIAS (ÍCONE + ROLAGEM INFINITA)
-        // ==========================================================
         function createListItemHtml(item) {
             const client = appData.clients.find(c => c.id_cliente == item.clientId);
             const responsibleUser = appData.users.find(u => u.id_usuario == item.responsibleId);
@@ -1687,7 +1682,6 @@
             
             container.insertAdjacentHTML('beforeend', newHtml);
             
-            // Pequeno delay para evitar múltiplos carregamentos seguidos
             setTimeout(() => { isFetchingMore = false; }, 100);
         }
 
@@ -1721,17 +1715,135 @@
                 }
 
                 showClientModal(clientId, () => {
-                       const tabToClick = itemType === 'task' ? 'tasks' : 'tickets';
-                       const editorToShow = itemType === 'task' ? showTaskEditor : showTicketEditor;
-                       document.querySelector(`button[data-tab="${tabToClick}"]`).click();
-                       editorToShow(itemId);
+                     const tabToClick = itemType === 'task' ? 'tasks' : 'tickets';
+                     const editorToShow = itemType === 'task' ? showTaskEditor : showTicketEditor;
+                     document.querySelector(`button[data-tab="${tabToClick}"]`).click();
+                     editorToShow(itemId);
                 });
             });
         }
+        
         // ==========================================================
-        // FIM DAS NOVAS MELHORIAS
+        // INÍCIO: FUNÇÕES DA NOVA VISÃO DE CALENDÁRIO
         // ==========================================================
         
+        function setupCalendarViewInteractions() {
+            const tabsContainer = document.getElementById('calendar-tabs');
+            tabsContainer.addEventListener('click', (e) => {
+                const button = e.target.closest('.calendar-tab-button');
+                if (!button) return;
+                
+                const tabName = button.dataset.tab;
+                
+                // Atualiza botões
+                tabsContainer.querySelectorAll('.calendar-tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Atualiza conteúdo
+                document.querySelectorAll('.calendar-tab-content').forEach(content => content.classList.remove('active'));
+                document.getElementById(`calendar-tab-${tabName}`).classList.add('active');
+            });
+        }
+
+        function renderCalendarView() {
+            if (!calendarInstance) {
+                initializeCalendar();
+            } else {
+                calendarInstance.removeAllEvents();
+                calendarInstance.addEventSource(getCalendarEvents());
+            }
+        }
+        
+        function getCalendarEvents() {
+            const events = [];
+            
+            // Mapeia tarefas
+            (appData.tasks || []).forEach(task => {
+                if (task.prazo_final) {
+                    const client = appData.clients.find(c => c.id_cliente === task.id_cliente);
+                    events.push({
+                        title: `[T] ${task.titulo_tarefa}`,
+                        start: task.prazo_final,
+                        allDay: true,
+                        backgroundColor: '#3b82f6', // blue-500
+                        borderColor: '#2563eb', // blue-600
+                        extendedProps: {
+                            type: 'task',
+                            itemId: task.id_tarefa,
+                            clientId: task.id_cliente,
+                            clientName: client ? client.nome_empresa : 'N/A'
+                        }
+                    });
+                }
+            });
+
+            // Mapeia tickets
+            (appData.tickets || []).forEach(ticket => {
+                if (ticket.prazo_final) {
+                    const client = appData.clients.find(c => c.id_cliente === ticket.id_cliente);
+                    events.push({
+                        title: `[C] ${ticket.titulo_ticket}`,
+                        start: ticket.prazo_final,
+                        allDay: true,
+                        backgroundColor: '#f97316', // orange-500
+                        borderColor: '#ea580c', // orange-600
+                        extendedProps: {
+                            type: 'ticket',
+                            itemId: ticket.id_ticket,
+                            clientId: ticket.id_cliente,
+                            clientName: client ? client.nome_empresa : 'N/A'
+                        }
+                    });
+                }
+            });
+            
+            return events;
+        }
+        
+        function initializeCalendar() {
+            const calendarEl = document.getElementById('fullcalendar-container');
+            calendarInstance = new FullCalendar.Calendar(calendarEl, {
+                locale: 'pt-br',
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listWeek'
+                },
+                buttonText: {
+                    today: 'Hoje',
+                    month: 'Mês',
+                    week: 'Semana',
+                    list: 'Lista'
+                },
+                events: getCalendarEvents(),
+                eventClick: function(info) {
+                    const { type, itemId, clientId } = info.event.extendedProps;
+                    
+                    if (!clientId) {
+                        showToast('Cliente não encontrado para este evento.');
+                        return;
+                    }
+                    
+                    showClientModal(clientId, () => {
+                        const tabToClick = type === 'task' ? 'tasks' : 'tickets';
+                        const editorToShow = type === 'task' ? showTaskEditor : showTicketEditor;
+                        document.querySelector(`button[data-tab="${tabToClick}"]`).click();
+                        editorToShow(itemId);
+                    });
+                },
+                eventDidMount: function(info) {
+                    // Adiciona um tooltip simples
+                    info.el.setAttribute('title', `${info.event.title}\nCliente: ${info.event.extendedProps.clientName}`);
+                }
+            });
+            calendarInstance.render();
+        }
+
+        // ==========================================================
+        // FIM: FUNÇÕES DA NOVA VISÃO DE CALENDÁRIO
+        // ==========================================================
+
         // ==========================================================
         // INÍCIO: IMPLEMENTAÇÃO DO EDITOR DE TAREFAS/TICKETS
         // ==========================================================
