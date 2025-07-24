@@ -1,0 +1,21 @@
+{
+  "name": "Prisme Sales - CRM",
+  "short_name": "Prisme CRM",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2fc36a",
+  "description": "Um CRM simples e poderoso para gestão de clientes.",
+  "icons": [
+    {
+      "src": "https://nattanlima.github.io/meu-crm-pwa/icons/icon-192-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://nattanlima.github.io/meu-crm-pwa/icons/icon-512-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
