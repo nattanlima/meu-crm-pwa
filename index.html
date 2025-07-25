@@ -234,12 +234,12 @@
                 <div class="flex items-center gap-2 w-full max-w-lg">
                     <div id="filter-container" class="relative flex-shrink-0">
                          <button id="filter-trigger-btn" data-active-tag-id="" class="flex items-center justify-center w-full px-3 py-2 border border-gray-300 rounded-full bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                             <span id="filter-btn-text">TODOS</span>
-                             <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
+                              <span id="filter-btn-text">TODOS</span>
+                              <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
                          </button>
                          <div id="filter-popup" class="hidden popup-menu absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                             <div id="filter-options-container" class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                 </div>
+                              <div id="filter-options-container" class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                   </div>
                          </div>
                     </div>
                     <div class="relative flex-grow">
@@ -298,7 +298,7 @@
                     </div>
                     <div class="relative">
                         <select id="list-filter-responsible" class="form-input !m-0 !py-1.5 !pl-3 !pr-8 appearance-none bg-slate-50 text-sm">
-                            </select>
+                        </select>
                     </div>
                 </div>
                 <div id="list-view-container" class="flex-grow">
@@ -534,11 +534,17 @@
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'cliente_tags' }, payload => {
                     console.log('Alteração em cliente_tags:', payload);
                     const { eventType, new: newRecord, old: oldRecord } = payload;
-                    if (eventType === 'INSERT') appData.client_tags.push(newRecord);
+                    if (eventType === 'INSERT') {
+                        // CORREÇÃO: Usa '==' para evitar problemas de tipo (string vs number) e previne duplicatas
+                        if (!appData.client_tags.some(ct => ct.id_cliente == newRecord.id_cliente && ct.id_tag == newRecord.id_tag)) {
+                            appData.client_tags.push(newRecord);
+                        }
+                    }
                     if (eventType === 'DELETE') {
-                        const oldIdCliente = oldRecord.old_id_cliente || (oldRecord.id_cliente);
-                        const oldIdTag = oldRecord.old_id_tag || (oldRecord.id_tag);
-                        appData.client_tags = appData.client_tags.filter(ct => !(ct.id_cliente === oldIdCliente && ct.id_tag === oldIdTag));
+                        const oldIdCliente = oldRecord.id_cliente;
+                        const oldIdTag = oldRecord.id_tag;
+                        // CORREÇÃO: Usa '==' para garantir a remoção correta
+                        appData.client_tags = appData.client_tags.filter(ct => !(ct.id_cliente == oldIdCliente && ct.id_tag == oldIdTag));
                     }
                     applyFiltersAndRender();
                 })
@@ -585,8 +591,14 @@
             if (!clientModal.classList.contains('hidden')) {
                 const form = modalContent.querySelector('#modal-form');
                 if (form && form.dataset.clientId) {
-                      const client = appData.clients.find(c => c.id_cliente.toString() === form.dataset.clientId);
-                      if(client) showClientModal(client.id_cliente);
+                     const client = appData.clients.find(c => c.id_cliente.toString() === form.dataset.clientId);
+                     if(client) {
+                         // Apenas atualiza as tags se o modal estiver aberto, para não recarregar tudo
+                         renderClientTags(client.id_cliente);
+                     } else {
+                         // Se o cliente não existe mais, fecha o modal
+                         hideClientModal();
+                     }
                 }
             }
             
@@ -937,6 +949,121 @@
             applyFiltersAndRender();
         }
 
+        // --- FUNÇÕES DE GERENCIAMENTO DE TAGS NO MODAL ---
+
+        async function handleAddTag(clientId, tagId) {
+            if (!clientId || !tagId) return;
+
+            const select = document.getElementById('add-tag-select');
+            if (select) select.disabled = true;
+
+            // Atualização otimista: Adiciona localmente primeiro para uma UI mais rápida
+            const newAssociation = { id_cliente: parseInt(clientId), id_tag: parseInt(tagId) };
+            appData.client_tags.push(newAssociation);
+            renderClientTags(clientId); 
+
+            try {
+                const { error } = await dbClient.from('cliente_tags').insert({ id_cliente: clientId, id_tag: tagId });
+                
+                // O erro 23505 (chave duplicada) pode acontecer em uma race condition.
+                // Como a UI já foi atualizada otimisticamente, podemos ignorar este erro específico.
+                if (error && error.code !== '23505') {
+                    throw error; // Lança outros erros para o bloco catch
+                }
+                
+                showToast('Tag adicionada!');
+
+            } catch (error) {
+                console.error('Erro ao adicionar tag:', error);
+                showToast('Erro ao adicionar tag.');
+
+                // Reverte a atualização otimista em caso de erro
+                appData.client_tags = appData.client_tags.filter(
+                    ct => !(ct.id_cliente.toString() === clientId.toString() && ct.id_tag.toString() === tagId.toString())
+                );
+                renderClientTags(clientId); // Re-renderiza para refletir a reversão
+            } finally {
+                 if(select) {
+                    select.disabled = false;
+                    select.value = '';
+                 }
+            }
+        }
+
+        async function handleRemoveTag(clientId, tagId) {
+            showConfirmationModal('Tem certeza que deseja remover esta tag?', async () => {
+                try {
+                    const { error } = await dbClient.from('cliente_tags').delete().match({ id_cliente: clientId, id_tag: tagId });
+                    if (error) throw error;
+                    
+                    // Atualização otimista com comparação de tipos robusta
+                    const clientIdStr = clientId.toString();
+                    const tagIdStr = tagId.toString();
+                    appData.client_tags = appData.client_tags.filter(
+                        ct => !(ct.id_cliente.toString() === clientIdStr && ct.id_tag.toString() === tagIdStr)
+                    );
+
+                    renderClientTags(clientId); // Re-renderiza as tags no modal
+                    showToast('Tag removida!');
+                } catch (error) {
+                    console.error('Erro ao remover tag:', error);
+                    showToast('Erro ao remover tag.');
+                }
+            });
+        }
+
+        function renderClientTags(clientId) {
+            const container = document.getElementById('modal-tags-container');
+            if (!container) return;
+
+            const clientTagIds = appData.client_tags
+                .filter(ct => ct.id_cliente == clientId)
+                .map(ct => ct.id_tag);
+
+            const currentTags = appData.tags.filter(t => clientTagIds.includes(t.id_tag));
+            const availableTags = appData.tags.filter(t => !clientTagIds.includes(t.id_tag));
+
+            let tagsHtml = currentTags.map(tag => `
+                <span class="flex items-center text-xs font-medium px-2 py-1 rounded-full" style="background-color:${tag.cor}20; color:${tag.cor};">
+                    ${tag.nome_tag}
+                    <button title="Remover Tag" class="remove-tag-btn ml-1.5 w-4 h-4 rounded-full hover:bg-black/20 flex items-center justify-center" data-tag-id="${tag.id_tag}" data-client-id="${clientId}">
+                        <i class="fas fa-times text-xs" style="color:${tag.cor};"></i>
+                    </button>
+                </span>
+            `).join('');
+
+            let selectOptions = availableTags.length > 0
+                ? availableTags.map(tag => `<option value="${tag.id_tag}">${tag.nome_tag}</option>`).join('')
+                : '<option disabled>Nenhuma tag disponível</option>';
+
+            const selectHtml = `
+                <div class="relative">
+                    <select id="add-tag-select" class="form-input !m-0 !py-1 !pl-3 !pr-8 text-sm appearance-none bg-slate-50 hover:bg-slate-100 cursor-pointer">
+                        <option value="">Adicionar tag...</option>
+                        ${selectOptions}
+                    </select>
+                </div>
+            `;
+
+            container.innerHTML = tagsHtml + selectHtml;
+
+            container.querySelectorAll('.remove-tag-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const { tagId, clientId } = e.currentTarget.dataset;
+                    handleRemoveTag(clientId, tagId);
+                });
+            });
+
+            const addTagSelect = document.getElementById('add-tag-select');
+            addTagSelect.addEventListener('change', (e) => {
+                const tagId = e.target.value;
+                if (tagId) {
+                    handleAddTag(clientId, tagId);
+                }
+            });
+        }
+
         // --- FUNÇÕES DO MODAL DO CLIENTE ---
 
         function showClientModal(clientId, onReadyCallback = null) {
@@ -958,9 +1085,12 @@
 
             modalContent.innerHTML = `
                 <div class="p-6 border-b flex-shrink-0">
-                    <div class="flex justify-between items-start">
-                        <div><h2 class="text-2xl sm:text-3xl font-bold text-gray-800">${client.nome_empresa}</h2></div>
-                        <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                    <div class="flex justify-between items-start gap-4">
+                        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 flex-shrink-0 mr-4">${client.nome_empresa}</h2>
+                        <div id="modal-tags-container" class="flex-grow flex items-center flex-wrap gap-2 justify-end">
+                            <!-- As tags serão renderizadas aqui pela função renderClientTags -->
+                        </div>
+                        <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl flex-shrink-0">&times;</button>
                     </div>
                 </div>
                 <div class="border-b border-gray-200 flex-shrink-0">
@@ -1008,6 +1138,9 @@
                     </div>
                 </div>`;
             
+            // Renderiza as tags e adiciona os event listeners
+            renderClientTags(clientId);
+
             const tabs = document.querySelectorAll('.tab-button'); 
             const contents = document.querySelectorAll('.tab-content');
             tabs.forEach(tab => { 
