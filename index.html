@@ -20,7 +20,6 @@
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     
-    <!-- FullCalendar.io para a visão de calendário -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -234,12 +233,12 @@
                 <div class="flex items-center gap-2 w-full max-w-lg">
                     <div id="filter-container" class="relative flex-shrink-0">
                          <button id="filter-trigger-btn" data-active-tag-id="" class="flex items-center justify-center w-full px-3 py-2 border border-gray-300 rounded-full bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                              <span id="filter-btn-text">TODOS</span>
-                              <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
+                             <span id="filter-btn-text">TODOS</span>
+                             <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
                          </button>
                          <div id="filter-popup" class="hidden popup-menu absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                              <div id="filter-options-container" class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                   </div>
+                             <div id="filter-options-container" class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                 </div>
                          </div>
                     </div>
                     <div class="relative flex-grow">
@@ -248,7 +247,6 @@
                         </div>
                         <input type="search" id="search-input" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400" placeholder="Pesquisar...">
                     </div>
-                    <!-- Grupo de botões de visualização -->
                     <div class="flex items-center border border-gray-300 rounded-full bg-white p-0.5">
                         <button id="kanban-view-btn" class="view-toggle-btn active flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-700" title="Visão Kanban">
                             <i class="fas fa-table-columns text-base"></i>
@@ -264,12 +262,15 @@
             </div>
 
             <div class="flex items-center space-x-2 sm:space-x-4 justify-end order-2 md:order-3">
+                <a href="https://prismen8n.prismeapp.com.br/webhook/avaliacoes" target="_blank" rel="noopener noreferrer" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full" title="Avaliações">
+                    <i class="fas fa-clipboard"></i>
+                </a>
                 <button id="install-pwa-header-button" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full" title="Instalar App">
                     <i class="fas fa-download"></i>
                 </button>
                 <div id="user-menu-container" class="relative">
                     <button id="user-avatar-btn" class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 overflow-hidden">
-                        </button>
+                    </button>
                     <div id="logout-popup" class="hidden popup-menu absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
                         <div class="py-1">
                             <div class="px-4 py-2 border-b">
@@ -308,23 +309,23 @@
         
         <div id="calendar-view" class="hidden flex-grow flex flex-col bg-slate-50 overflow-hidden p-2 sm:p-4">
              <div class="border-b border-gray-200 mb-4">
-                <nav id="calendar-tabs" class="flex space-x-4 -mb-px">
-                    <button data-tab="internal" class="calendar-tab-button active">Tarefas & Tickets</button>
-                    <button data-tab="google" class="calendar-tab-button">Agenda Google</button>
-                </nav>
-            </div>
-            <div id="calendar-tab-internal" class="calendar-tab-content active flex-grow">
-                <div id="fullcalendar-container" class="bg-white p-1 sm:p-4 rounded-lg shadow-sm h-full"></div>
-            </div>
-            <div id="calendar-tab-google" class="calendar-tab-content">
-                <div class="bg-white p-4 rounded-lg shadow-sm">
-                    <p class="text-gray-600 mb-4">Para visualizar a agenda, certifique-se de que a agenda de <code class="bg-gray-200 p-1 rounded">call@prismeapp.com.br</code> está pública.</p>
-                    <iframe id="google-calendar-iframe"
-                        src="https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FSao_Paulo&bgcolor=%23ffffff&src=Y2FsbEBwcmlzbWVhcHAuY29tLmJy&color=%23039BE5"
-                        style="border:solid 1px #777" width="800" height="600" frameborder="0" scrolling="no">
-                    </iframe>
-                </div>
-            </div>
+                 <nav id="calendar-tabs" class="flex space-x-4 -mb-px">
+                     <button data-tab="internal" class="calendar-tab-button active">Tarefas & Tickets</button>
+                     <button data-tab="google" class="calendar-tab-button">Agenda Google</button>
+                 </nav>
+             </div>
+             <div id="calendar-tab-internal" class="calendar-tab-content active flex-grow">
+                 <div id="fullcalendar-container" class="bg-white p-1 sm:p-4 rounded-lg shadow-sm h-full"></div>
+             </div>
+             <div id="calendar-tab-google" class="calendar-tab-content">
+                 <div class="bg-white p-4 rounded-lg shadow-sm">
+                     <p class="text-gray-600 mb-4">Para visualizar a agenda, certifique-se de que a agenda de <code class="bg-gray-200 p-1 rounded">call@prismeapp.com.br</code> está pública.</p>
+                     <iframe id="google-calendar-iframe"
+                         src="https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FSao_Paulo&bgcolor=%23ffffff&src=Y2FsbEBwcmlzbWVhcHAuY29tLmJy&color=%23039BE5"
+                         style="border:solid 1px #777" width="800" height="600" frameborder="0" scrolling="no">
+                     </iframe>
+                 </div>
+             </div>
         </div>
 
     </div>
@@ -984,8 +985,8 @@
                 renderClientTags(clientId); // Re-renderiza para refletir a reversão
             } finally {
                  if(select) {
-                    select.disabled = false;
-                    select.value = '';
+                     select.disabled = false;
+                     select.value = '';
                  }
             }
         }
@@ -1088,8 +1089,7 @@
                     <div class="flex justify-between items-start gap-4">
                         <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 flex-shrink-0 mr-4">${client.nome_empresa}</h2>
                         <div id="modal-tags-container" class="flex-grow flex items-center flex-wrap gap-2 justify-end">
-                            <!-- As tags serão renderizadas aqui pela função renderClientTags -->
-                        </div>
+                            </div>
                         <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl flex-shrink-0">&times;</button>
                     </div>
                 </div>
