@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prisme Sales - Disparador de Mensagens</title>
+    
+    <!-- Meta e Ícones baseados no seu arquivo de referência -->
+    <meta name="theme-color" content="#2fc36a">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/favicon-16x16.png">
+    
+    <!-- Dependências de Estilo e Scripts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* Estilos personalizados inspirados no seu CRM */
+        body {
+            background-color: #f8fafc; /* slate-50 */
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+
+        /* Estilo customizado para o checkbox interativo */
+        .status-checkbox-label {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .status-checkbox:checked + .status-checkbox-label {
+            border-color: #2fc36a; /* Cor principal */
+            background-color: #d1fae5; /* green-100 */
+            color: #065f46; /* green-800 */
+            font-weight: 600;
+        }
+
+        .status-checkbox:checked + .status-checkbox-label .fa-circle {
+            color: #2fc36a; /* Cor principal */
+        }
+        
+        .form-input {
+             margin-top: 4px; display: block; width: 100%; border-radius: 0.5rem; border: 1px solid #d4d4d8; padding: 0.75rem 1rem; background-color: #fafafa;
+        }
+        .form-input:focus { 
+            border-color: #16a34a; outline: 2px solid transparent; outline-offset: 2px; box-shadow: 0 0 0 2px #a7f3d0;
+        }
+
+        @keyframes pulse-feedback { 
+            0%, 100% { transform: scale(1); } 
+            50% { transform: scale(1.02); } 
+        }
+        .feedback-loading { animation: pulse-feedback 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl">
+        <!-- Cabeçalho -->
+        <div class="text-center mb-8">
+            <img src="https://crm.prismeapp.com.br/web/binary/company_logo" alt="Logo Prisme Sales" class="mx-auto h-16 w-auto mb-4" onerror="this.style.display='none'">
+            <h1 class="text-3xl font-bold text-gray-800">Disparador de Mensagens</h1>
+            <p class="text-gray-500 mt-1">Seleciona as colunas de clientes, crie a mensagem e envie para relacionar!</p>
+        </div>
+
+        <!-- Container Principal -->
+        <div class="bg-white p-8 rounded-xl shadow-md space-y-8">
+            
+            <!-- Seção de Filtros -->
+            <div class="section">
+                <h3 class="text-lg font-bold text-gray-700 border-b pb-2 mb-4">1. Filtre os Clientes por Status</h3>
+                <div id="status-filters" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    <!-- Checkboxes são gerados aqui e estilizados via label -->
+                    <div>
+                        <input type="checkbox" id="status1" name="status" value="🚀 KickOFF" class="hidden status-checkbox">
+                        <label for="status1" class="status-checkbox-label cursor-pointer flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-gray-400">
+                           <i class="fas fa-circle text-gray-300 mr-3"></i> 🚀 KickOFF
+                        </label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="status2" name="status" value="📌Implementação" class="hidden status-checkbox">
+                        <label for="status2" class="status-checkbox-label cursor-pointer flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-gray-400">
+                           <i class="fas fa-circle text-gray-300 mr-3"></i> 📌 Implementação
+                        </label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="status3" name="status" value="⏱️Primeiros 90 dias" class="hidden status-checkbox">
+                        <label for="status3" class="status-checkbox-label cursor-pointer flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-gray-400">
+                           <i class="fas fa-circle text-gray-300 mr-3"></i> ⏱️ Primeiros 90 dias
+                        </label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="status4" name="status" value="🛠️Manutenção" class="hidden status-checkbox">
+                        <label for="status4" class="status-checkbox-label cursor-pointer flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-gray-400">
+                           <i class="fas fa-circle text-gray-300 mr-3"></i> 🛠️ Manutenção
+                        </label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="status5" name="status" value="❌Cancelados" class="hidden status-checkbox">
+                        <label for="status5" class="status-checkbox-label cursor-pointer flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-gray-400">
+                           <i class="fas fa-circle text-gray-300 mr-3"></i> ❌ Cancelados
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção de Mensagem -->
+            <div class="section">
+                <h3 class="text-lg font-bold text-gray-700 border-b pb-2 mb-4">2. Escreva a Mensagem</h3>
+                <div class="toolbar mb-2">
+                    <button onclick="formatText('bold')" title="Negrito (Ctrl+B)" class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md"><i class="fas fa-bold"></i></button>
+                    <button onclick="formatText('italic')" title="Itálico (Ctrl+I)" class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md"><i class="fas fa-italic"></i></button>
+                </div>
+                <textarea id="message-composer" rows="6" class="form-input !mt-0" placeholder="Digite sua mensagem aqui..."></textarea>
+            </div>
+
+            <!-- Botão de Envio e Feedback -->
+            <div class="pt-4">
+                 <button id="send-button" class="w-full px-4 py-3 text-lg font-semibold text-white bg-[#2fc36a] rounded-full hover:bg-[#29a85b] transition-colors flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed">
+                     <i class="fas fa-paper-plane mr-3"></i>
+                     Preparar e Enviar
+                 </button>
+                 <div id="feedback" class="hidden mt-4 p-3 text-sm text-center font-semibold rounded-lg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- INÍCIO: CONFIGURAÇÃO DO SUPABASE ---
+        const SUPABASE_URL = 'https://ccenxfyqwtfpexltuwrn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjZW54Znlxd3RmcGV4bHR1d3JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzE1MTMsImV4cCI6MjA2ODg0NzUxM30.6un31sODuCyd5Dz_pR_kn656k74jjh5CNAfF0YteT7I';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // --- FIM: CONFIGURAÇÃO DO SUPABASE ---
+
+        const WEBHOOK_URL = 'https://prismen8n.prismeapp.com.br/webhook/prepara-envio';
+
+        // --- INÍCIO: Elementos do DOM ---
+        const sendButton = document.getElementById('send-button');
+        const feedbackDiv = document.getElementById('feedback');
+        const messageComposer = document.getElementById('message-composer');
+        const statusCheckboxes = document.querySelectorAll('input[name="status"]');
+        // --- FIM: Elementos do DOM ---
+
+        // Função para formatar texto (negrito/itálico)
+        function formatText(style) {
+            const start = messageComposer.selectionStart;
+            const end = messageComposer.selectionEnd;
+            const selectedText = messageComposer.value.substring(start, end);
+            
+            if (!selectedText) {
+                messageComposer.focus();
+                return;
+            }
+
+            let formattedText;
+            if (style === 'bold') { formattedText = `*${selectedText}*`; } 
+            else if (style === 'italic') { formattedText = `_${selectedText}_`; } 
+            else { return; }
+
+            messageComposer.value = messageComposer.value.substring(0, start) + formattedText + messageComposer.value.substring(end);
+            messageComposer.focus();
+            messageComposer.setSelectionRange(start, start + formattedText.length);
+        }
+        
+        // Atalhos de teclado (Ctrl+B, Ctrl+I)
+        messageComposer.addEventListener('keydown', (e) => {
+            if (e.ctrlKey) {
+                if (e.key === 'b' || e.key === 'B') { e.preventDefault(); formatText('bold'); } 
+                else if (e.key === 'i' || e.key === 'I') { e.preventDefault(); formatText('italic'); }
+            }
+        });
+
+        // Função para exibir feedback ao usuário
+        function showFeedback(message, type) {
+            feedbackDiv.textContent = message;
+            feedbackDiv.className = 'block mt-4 p-3 text-sm text-center font-semibold rounded-lg ';
+            if (type === 'success') feedbackDiv.classList.add('bg-green-100', 'text-green-800');
+            else if (type === 'error') feedbackDiv.classList.add('bg-red-100', 'text-red-800');
+            else if (type === 'loading') feedbackDiv.classList.add('bg-blue-100', 'text-blue-800', 'feedback-loading');
+        }
+
+        // Função principal que é chamada ao clicar no botão
+        async function prepareAndSendData() {
+            sendButton.disabled = true;
+            showFeedback('Iniciando o processo...', 'loading');
+
+            const selectedStatuses = Array.from(statusCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+            if (selectedStatuses.length === 0) {
+                showFeedback('Erro: Por favor, selecione pelo menos um status para filtrar.', 'error');
+                sendButton.disabled = false;
+                return;
+            }
+
+            const message = messageComposer.value.trim();
+            if (!message) {
+                showFeedback('Erro: O campo de mensagem não pode estar vazio.', 'error');
+                sendButton.disabled = false;
+                return;
+            }
+
+            try {
+                showFeedback('Buscando clientes no Supabase...', 'loading');
+                const { data: clientes, error } = await supabaseClient
+                    .from('clientes')
+                    .select('link_grupo_whatsapp')
+                    .in('status', selectedStatuses);
+
+                if (error) throw new Error(`Erro no Supabase: ${error.message}`);
+                
+                if (!clientes || clientes.length === 0) {
+                    showFeedback('Nenhum cliente encontrado com os filtros selecionados.', 'error');
+                    sendButton.disabled = false;
+                    return;
+                }
+                
+                const groupLinks = clientes.map(c => c.link_grupo_whatsapp).filter(link => link && link.trim() !== '');
+                if (groupLinks.length === 0) {
+                    showFeedback('Os clientes encontrados não possuem links de grupo de WhatsApp válidos.', 'error');
+                    sendButton.disabled = false;
+                    return;
+                }
+
+                const payload = { message: message, whatsapp_groups: groupLinks };
+                
+                showFeedback(`Enviando dados de ${groupLinks.length} grupos para o webhook...`, 'loading');
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Erro no webhook. Status: ${response.status}. Resposta: ${errorText}`);
+                }
+
+                showFeedback(`Sucesso! O processo foi iniciado. A Eve vai notificar sobre o início e a finalização no grupo do Relacionamento.`, 'success');
+                messageComposer.value = '';
+
+            } catch (err) {
+                console.error('Ocorreu um erro:', err);
+                showFeedback(`Falha na operação: ${err.message}`, 'error');
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        sendButton.addEventListener('click', prepareAndSendData);
+    </script>
+</body>
+</html>
+
