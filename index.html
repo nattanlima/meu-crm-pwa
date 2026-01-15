@@ -1,17 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prisme Sales - CRM (Supabase)</title>
-    
-    <meta name="theme-color" content="#2fc36a">
-    
-    <link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/favicon-16x16.png">
-    <link rel="shortcut icon" href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/favicon-16x16.ico">
 
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/apple-touch-icon.png">
+    <meta name="theme-color" content="#2fc36a">
+
+    <link rel="icon" type="image/png" sizes="32x32"
+        href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16"
+        href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/favicon-16x16.png">
+    <link rel="shortcut icon"
+        href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/favicon-16x16.ico">
+
+    <link rel="apple-touch-icon"
+        href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/apple-touch-icon.png">
 
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,62 +24,118 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-    
+
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* --- ESTILOS GERAIS E MELHORIAS DE LAYOUT --- */
-        html, body {
+        html,
+        body {
             height: 100%;
-            overflow: hidden; /* Impede o scroll da página inteira */
-            background-color: #f8fafc; /* slate-50 */
+            overflow: hidden;
+            /* Impede o scroll da página inteira */
+            background-color: #f8fafc;
+            /* slate-50 */
         }
-        .kanban-board-container::-webkit-scrollbar { height: 8px; }
-        .kanban-board-container::-webkit-scrollbar-track { background: #f1f5f9; }
-        .kanban-board-container::-webkit-scrollbar-thumb { background: #a3a3a3; border-radius: 4px; }
-        
+
+        .kanban-board-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .kanban-board-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .kanban-board-container::-webkit-scrollbar-thumb {
+            background: #a3a3a3;
+            border-radius: 4px;
+        }
+
         /* --- ESTILOS DO QUADRO KANBAN (ESTILO TRELLO) --- */
         #kanban-board {
-            height: calc(100vh - 73px); /* Altura do header em desktop */
-            overflow-x: auto; /* Garante o scroll horizontal */
-            overflow-y: hidden; /* Previne o scroll vertical no quadro */
+            height: calc(100vh - 73px);
+            /* Altura do header em desktop */
+            overflow-x: auto;
+            /* Garante o scroll horizontal */
+            overflow-y: hidden;
+            /* Previne o scroll vertical no quadro */
         }
+
         @media (max-width: 767px) {
             #kanban-board {
-                height: calc(100vh - 115px); /* Altura do header em mobile (ajustada) */
+                height: calc(100vh - 115px);
+                /* Altura do header em mobile (ajustada) */
             }
         }
+
         .kanban-column {
-            height: 100%; /* Colunas ocupam toda a altura do board */
+            height: 100%;
+            /* Colunas ocupam toda a altura do board */
             display: flex;
             flex-direction: column;
         }
+
         .kanban-cards {
-            flex-grow: 1; /* Faz a área dos cards ocupar o espaço restante */
-            overflow-y: auto; /* Habilita o scroll vertical DENTRO da coluna */
-            padding-right: 4px; /* Espaço para a barra de rolagem */
-            scrollbar-width: none; /* Firefox */
+            flex-grow: 1;
+            /* Faz a área dos cards ocupar o espaço restante */
+            overflow-y: auto;
+            /* Habilita o scroll vertical DENTRO da coluna */
+            padding-right: 4px;
+            /* Espaço para a barra de rolagem */
+            scrollbar-width: none;
+            /* Firefox */
         }
-        .kanban-cards::-webkit-scrollbar { 
-            display: none; /* Chrome, Safari, and Opera */
+
+        .kanban-cards::-webkit-scrollbar {
+            display: none;
+            /* Chrome, Safari, and Opera */
         }
 
         /* --- ESTILOS DO MODAL --- */
-        #task-list-container, #ticket-list-container {
+        #task-list-container,
+        #ticket-list-container {
             max-height: 45vh;
             overflow-y: auto;
         }
-        #list-view-container-wrapper::-webkit-scrollbar, #calendar-view::-webkit-scrollbar { width: 8px; }
-        #list-view-container-wrapper::-webkit-scrollbar-track, #calendar-view::-webkit-scrollbar-track { background: #f1f5f9; }
-        #list-view-container-wrapper::-webkit-scrollbar-thumb, #calendar-view::-webkit-scrollbar-thumb { background: #a3a3a3; border-radius: 4px; }
-        
-        #task-list-container::-webkit-scrollbar, #ticket-list-container::-webkit-scrollbar { width: 6px; }
-        #task-list-container::-webkit-scrollbar-track, #ticket-list-container::-webkit-scrollbar-track { background: #e2e8f0; }
-        #task-list-container::-webkit-scrollbar-thumb, #ticket-list-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+
+        #list-view-container-wrapper::-webkit-scrollbar,
+        #calendar-view::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #list-view-container-wrapper::-webkit-scrollbar-track,
+        #calendar-view::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        #list-view-container-wrapper::-webkit-scrollbar-thumb,
+        #calendar-view::-webkit-scrollbar-thumb {
+            background: #a3a3a3;
+            border-radius: 4px;
+        }
+
+        #task-list-container::-webkit-scrollbar,
+        #ticket-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #task-list-container::-webkit-scrollbar-track,
+        #ticket-list-container::-webkit-scrollbar-track {
+            background: #e2e8f0;
+        }
+
+        #task-list-container::-webkit-scrollbar-thumb,
+        #ticket-list-container::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 3px;
+        }
+
         .tab-badge {
-            background-color: #e2e8f0; /* slate-200 */
-            color: #475569; /* slate-600 */
+            background-color: #e2e8f0;
+            /* slate-200 */
+            color: #475569;
+            /* slate-600 */
             font-size: 12px;
             font-weight: 600;
             padding: 2px 8px;
@@ -86,84 +147,198 @@
         .popup-menu {
             transition: transform 0.2s ease-out, opacity 0.2s ease-out;
         }
+
         .popup-menu.hidden {
             transform: translateY(-10px);
             opacity: 0;
             pointer-events: none;
         }
+
         .filter-tag-option {
             transition: background-color: 0.2s;
         }
+
         .filter-tag-option:hover {
-            background-color: #f1f5f9; /* slate-100 */
+            background-color: #f1f5f9;
+            /* slate-100 */
         }
-        
+
         /* Estilo para a nova visão de lista */
-        .list-item-row { transition: all 0.2s ease-in-out; }
+        .list-item-row {
+            transition: all 0.2s ease-in-out;
+        }
+
         .list-item-row:hover {
-             transform: translateY(-2px);
+            transform: translateY(-2px);
         }
 
         /* --- ESTILOS PARA A VISÃO DE CALENDÁRIO --- */
         #calendar-view {
             overflow-y: auto;
         }
+
         .calendar-tab-button {
             cursor: pointer;
             padding: 0.5rem 1rem;
             border-bottom: 2px solid transparent;
-            color: #737373; /* neutral-500 */
+            color: #737373;
+            /* neutral-500 */
             font-weight: 500;
         }
+
         .calendar-tab-button.active {
-            border-color: #2fc36a; /* sua cor principal */
-            color: #15803d; /* green-700 */
+            border-color: #2fc36a;
+            /* sua cor principal */
+            color: #15803d;
+            /* green-700 */
             font-weight: 600;
         }
-        .calendar-tab-content { display: none; }
-        .calendar-tab-content.active { display: block; }
+
+        .calendar-tab-content {
+            display: none;
+        }
+
+        .calendar-tab-content.active {
+            display: block;
+        }
+
         #google-calendar-iframe {
             width: 100%;
-            height: calc(100vh - 220px); /* Ajuste conforme necessário */
+            height: calc(100vh - 220px);
+            /* Ajuste conforme necessário */
             border: 0;
         }
-         /* Estilos do FullCalendar */
+
+        /* Estilos do FullCalendar */
         :root {
             --fc-border-color: #e2e8f0;
             --fc-daygrid-event-dot-width: 8px;
             --fc-list-event-hover-bg-color: #f1f5f9;
         }
-        .fc .fc-toolbar-title { font-size: 1.25em; font-weight: 600; }
+
+        .fc .fc-toolbar-title {
+            font-size: 1.25em;
+            font-weight: 600;
+        }
+
         .fc .fc-button-primary {
             background-color: #2fc36a !important;
             border-color: #2fc36a !important;
             color: white !important;
             font-size: 0.875rem !important;
         }
-        .fc .fc-button-primary:not(:disabled).fc-button-active, .fc .fc-button-primary:not(:disabled):active {
-             background-color: #29a85b !important;
-             border-color: #29a85b !important;
+
+        .fc .fc-button-primary:not(:disabled).fc-button-active,
+        .fc .fc-button-primary:not(:disabled):active {
+            background-color: #29a85b !important;
+            border-color: #29a85b !important;
         }
-        .fc-event { cursor: pointer; border-radius: 4px !important; }
+
+        .fc-event {
+            cursor: pointer;
+            border-radius: 4px !important;
+        }
 
         /* --- OUTROS ESTILOS --- */
-        .kanban-card { user-select: none; }
-        .kanban-column.collapsed { width: 56px; cursor: pointer; }
-        .kanban-column.collapsed .column-header-expanded, .kanban-column.collapsed .kanban-cards { display: none; }
-        .kanban-column.collapsed .column-header-collapsed { display: flex; }
-        .kanban-column .column-header-collapsed .vertical-text { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; padding: 16px 0; }
-        .form-input { margin-top: 4px; display: block; width: 100%; border-radius: 0.5rem; border: 1px solid #d4d4d8; padding: 0.5rem 0.75rem; background-color: #fafafa; }
-        .form-input:focus { border-color: #16a34a; outline: 2px solid transparent; outline-offset: 2px; box-shadow: 0 0 0 2px #a7f3d0; }
-        .ql-editor { min-height: 150px; }
-        .tab-button { cursor: pointer; padding: 0.5rem 1rem; border-bottom: 2px solid transparent; color: #737373; }
-        .tab-button.active { border-color: #2fc36a; color: #15803d; font-weight: 600; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .suggestion-btn { background-color: #f4f4f5; color: #52525b; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; transition: background-color: 0.2s; }
-        .suggestion-btn:hover { background-color: #e4e4e7; }
-        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.02); } }
-        .pulse-animation { animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        
+        .kanban-card {
+            user-select: none;
+        }
+
+        .kanban-column.collapsed {
+            width: 56px;
+            cursor: pointer;
+        }
+
+        .kanban-column.collapsed .column-header-expanded,
+        .kanban-column.collapsed .kanban-cards {
+            display: none;
+        }
+
+        .kanban-column.collapsed .column-header-collapsed {
+            display: flex;
+        }
+
+        .kanban-column .column-header-collapsed .vertical-text {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            padding: 16px 0;
+        }
+
+        .form-input {
+            margin-top: 4px;
+            display: block;
+            width: 100%;
+            border-radius: 0.5rem;
+            border: 1px solid #d4d4d8;
+            padding: 0.5rem 0.75rem;
+            background-color: #fafafa;
+        }
+
+        .form-input:focus {
+            border-color: #16a34a;
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 2px #a7f3d0;
+        }
+
+        .ql-editor {
+            min-height: 150px;
+        }
+
+        .tab-button {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            color: #737373;
+        }
+
+        .tab-button.active {
+            border-color: #2fc36a;
+            color: #15803d;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .suggestion-btn {
+            background-color: #f4f4f5;
+            color: #52525b;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background-color: 0.2s;
+        }
+
+        .suggestion-btn:hover {
+            background-color: #e4e4e7;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.7;
+                transform: scale(1.02);
+            }
+        }
+
+        .pulse-animation {
+            animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
         /* Estilos para o formulário de nova tarefa */
         .task-form-container {
             background-color: #f8fafc;
@@ -172,12 +347,12 @@
             padding: 1rem;
             margin-bottom: 1rem;
         }
-        
+
         .task-form-expanded {
             border-color: #2fc36a;
             background-color: #ffffff;
         }
-        
+
         .task-title-input {
             width: 100%;
             border: none;
@@ -188,29 +363,36 @@
             outline: none;
             padding: 0.5rem 0;
         }
-        
+
         .task-title-input::placeholder {
             color: #9ca3af;
             font-weight: normal;
         }
     </style>
 </head>
+
 <body class="font-sans h-full">
 
     <div id="login-screen" class="flex items-center justify-center h-screen bg-slate-100 p-4">
         <div class="w-full max-w-sm p-8 space-y-6 bg-white rounded-xl shadow-md">
             <div class="text-center">
-                <img src="https://crm.prismeapp.com.br/web/binary/company_logo" alt="Logo Prisme Sales" class="mx-auto h-20 w-auto" onerror="this.style.display='none'">
+                <img src="https://crm.prismeapp.com.br/web/binary/company_logo" alt="Logo Prisme Sales"
+                    class="mx-auto h-20 w-auto" onerror="this.style.display='none'">
                 <h2 class="mt-6 text-3xl font-bold text-gray-900">Prisme Sales - CRM</h2>
                 <p class="text-gray-500">Faça login para continuar</p>
             </div>
             <div id="login-error" class="hidden p-3 text-sm text-red-700 bg-red-100 rounded-lg"></div>
             <form id="login-form" class="space-y-4">
-                <div><label for="email" class="text-sm font-medium text-gray-700">Email</label><input id="email" type="email" required class="form-input" placeholder="seu.email@prismeapp.com.br"></div>
-                <div><label for="telefone" class="text-sm font-medium text-gray-700">Sua senha</label><input id="telefone" type="password" required class="form-input" placeholder="••••••••"></div>
-                <div><button type="submit" class="w-full px-4 py-2 text-lg font-semibold text-white bg-[#2fc36a] rounded-full hover:bg-[#29a85b] transition-colors">Entrar</button></div>
+                <div><label for="email" class="text-sm font-medium text-gray-700">Email</label><input id="email"
+                        type="email" required class="form-input" placeholder="seu.email@prismeapp.com.br"></div>
+                <div><label for="telefone" class="text-sm font-medium text-gray-700">Sua senha</label><input
+                        id="telefone" type="password" required class="form-input" placeholder="••••••••"></div>
+                <div><button type="submit"
+                        class="w-full px-4 py-2 text-lg font-semibold text-white bg-[#2fc36a] rounded-full hover:bg-[#29a85b] transition-colors">Entrar</button>
+                </div>
                 <div>
-                    <button type="button" id="install-pwa-login-button" class="hidden w-full px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors flex items-center justify-center">
+                    <button type="button" id="install-pwa-login-button"
+                        class="hidden w-full px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors flex items-center justify-center">
                         <i class="fas fa-download mr-2"></i> Instalar App
                     </button>
                 </div>
@@ -218,43 +400,58 @@
         </div>
     </div>
 
-    <div id="loading-screen" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-slate-100 z-50">
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-600 z-10 pulse-animation">Preparando tudo para você relacionar mais!</h2>
+    <div id="loading-screen"
+        class="hidden absolute inset-0 flex flex-col items-center justify-center bg-slate-100 z-50">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-600 z-10 pulse-animation">Preparando tudo para você
+            relacionar mais!</h2>
     </div>
 
     <div id="crm-app" class="hidden h-full flex flex-col">
-        <header class="bg-white p-2 sm:p-4 flex flex-wrap gap-2 sm:gap-4 justify-between items-center border-b border-slate-200 flex-shrink-0">
+        <header
+            class="bg-white p-2 sm:p-4 flex flex-wrap gap-2 sm:gap-4 justify-between items-center border-b border-slate-200 flex-shrink-0">
             <div class="flex items-center space-x-3">
-                <img src="https://crm.prismeapp.com.br/web/binary/company_logo" alt="Logo Prisme Sales" class="h-8 w-auto" onerror="this.style.display='none'">
+                <img src="https://crm.prismeapp.com.br/web/binary/company_logo" alt="Logo Prisme Sales"
+                    class="h-8 w-auto" onerror="this.style.display='none'">
                 <h1 class="text-xl md:text-2xl font-bold text-gray-800 hidden sm:block">Seu CRM</h1>
             </div>
-            
+
             <div class="w-full md:w-auto md:flex-1 flex justify-center px-0 md:px-4 order-3 md:order-2">
                 <div class="flex items-center gap-2 w-full max-w-lg">
                     <div id="filter-container" class="relative flex-shrink-0">
-                         <button id="filter-trigger-btn" data-active-tag-id="" class="flex items-center justify-center w-full px-3 py-2 border border-gray-300 rounded-full bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                             <span id="filter-btn-text">TODOS</span>
-                             <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
-                         </button>
-                         <div id="filter-popup" class="hidden popup-menu absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                             <div id="filter-options-container" class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                 </div>
-                         </div>
+                        <button id="filter-trigger-btn" data-active-tag-id=""
+                            class="flex items-center justify-center w-full px-3 py-2 border border-gray-300 rounded-full bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                            <span id="filter-btn-text">TODOS</span>
+                            <i class="fas fa-chevron-down ml-2 text-xs text-gray-500"></i>
+                        </button>
+                        <div id="filter-popup"
+                            class="hidden popup-menu absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                            <div id="filter-options-container" class="py-1" role="menu" aria-orientation="vertical"
+                                aria-labelledby="options-menu">
+                            </div>
+                        </div>
                     </div>
                     <div class="relative flex-grow">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fas fa-search text-gray-400"></i>
                         </div>
-                        <input type="search" id="search-input" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400" placeholder="Pesquisar...">
+                        <input type="search" id="search-input"
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400"
+                            placeholder="Pesquisar...">
                     </div>
                     <div class="flex items-center border border-gray-300 rounded-full bg-white p-0.5">
-                        <button id="kanban-view-btn" class="view-toggle-btn active flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-700" title="Visão Kanban">
+                        <button id="kanban-view-btn"
+                            class="view-toggle-btn active flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-700"
+                            title="Visão Kanban">
                             <i class="fas fa-table-columns text-base"></i>
                         </button>
-                        <button id="list-view-btn" class="view-toggle-btn flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-white text-gray-500 hover:bg-gray-100" title="Visão de Lista">
+                        <button id="list-view-btn"
+                            class="view-toggle-btn flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-white text-gray-500 hover:bg-gray-100"
+                            title="Visão de Lista">
                             <i class="fas fa-list-check text-base"></i>
                         </button>
-                        <button id="calendar-view-btn" class="view-toggle-btn flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-white text-gray-500 hover:bg-gray-100" title="Visão de Calendário">
+                        <button id="calendar-view-btn"
+                            class="view-toggle-btn flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-white text-gray-500 hover:bg-gray-100"
+                            title="Visão de Calendário">
                             <i class="fas fa-calendar-days text-base"></i>
                         </button>
                     </div>
@@ -262,29 +459,40 @@
             </div>
 
             <div class="flex items-center space-x-2 sm:space-x-4 justify-end order-2 md:order-3">
-                <a href="https://nattanlima.github.io/relatorios/" target="_blank" rel="noopener noreferrer" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full" title="Avaliações">
+                <a href="https://nattanlima.github.io/relatorios/" target="_blank" rel="noopener noreferrer"
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full"
+                    title="Avaliações">
                     <i class="fas fa-clipboard"></i>
                 </a>
-                <a href="https://nattanlima.github.io/disparador-relacionamento/" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full" title="Disparador">
+                <a href="https://nattanlima.github.io/disparador-relacionamento/"
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full"
+                    title="Disparador">
                     <i class="fas fa-paper-plane"></i>
                 </a>
                 <!-- BOTÃO NOVO ADICIONADO AQUI -->
-                <a href="https://mkt.prismeapp.com.br" target="_blank" rel="noopener noreferrer" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full" title="CRM de Marketing">
+                <a href="https://mkt.prismeapp.com.br" target="_blank" rel="noopener noreferrer"
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full"
+                    title="CRM de Marketing">
                     <i class="fas fa-bullhorn"></i>
                 </a>
-                <button id="install-pwa-header-button" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full" title="Instalar App">
+                <button id="install-pwa-header-button"
+                    class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-full"
+                    title="Instalar App">
                     <i class="fas fa-download"></i>
                 </button>
                 <div id="user-menu-container" class="relative">
-                    <button id="user-avatar-btn" class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 overflow-hidden">
+                    <button id="user-avatar-btn"
+                        class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 overflow-hidden">
                     </button>
-                    <div id="logout-popup" class="hidden popup-menu absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                    <div id="logout-popup"
+                        class="hidden popup-menu absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
                         <div class="py-1">
                             <div class="px-4 py-2 border-b">
                                 <p id="popup-user-name" class="text-sm font-semibold text-gray-900 truncate"></p>
                                 <p id="popup-user-email" class="text-sm text-gray-500 truncate"></p>
                             </div>
-                            <a href="#" id="popup-logout-btn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sair</a>
+                            <a href="#" id="popup-logout-btn"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sair</a>
                         </div>
                     </div>
                 </div>
@@ -294,77 +502,95 @@
         <main id="kanban-board" class="kanban-board-container flex space-x-2 sm:space-x-4 p-2 sm:p-4 flex-grow"></main>
 
         <div id="list-view" class="hidden flex-grow flex flex-col bg-slate-50 overflow-hidden">
-            <div id="list-view-container-wrapper" class="w-full max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-2 sm:py-4 flex-grow flex flex-col overflow-y-auto">
-                <div id="list-view-filters" class="p-3 mb-4 bg-white border border-slate-200 rounded-lg flex-shrink-0 flex flex-wrap gap-3 items-center">
+            <div id="list-view-container-wrapper"
+                class="w-full max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-2 sm:py-4 flex-grow flex flex-col overflow-y-auto">
+                <div id="list-view-filters"
+                    class="p-3 mb-4 bg-white border border-slate-200 rounded-lg flex-shrink-0 flex flex-wrap gap-3 items-center">
                     <span class="font-semibold text-gray-700 hidden md:inline">Filtros:</span>
                     <div class="relative">
-                        <select id="list-filter-type" class="form-input !m-0 !py-1.5 !pl-3 !pr-8 appearance-none bg-slate-50 text-sm">
+                        <select id="list-filter-type"
+                            class="form-input !m-0 !py-1.5 !pl-3 !pr-8 appearance-none bg-slate-50 text-sm">
                             <option value="all">Todos os Tipos</option>
                             <option value="task">Apenas Tarefas</option>
                             <option value="ticket">Apenas Tickets</option>
                         </select>
                     </div>
                     <div class="relative">
-                        <select id="list-filter-responsible" class="form-input !m-0 !py-1.5 !pl-3 !pr-8 appearance-none bg-slate-50 text-sm">
+                        <select id="list-filter-responsible"
+                            class="form-input !m-0 !py-1.5 !pl-3 !pr-8 appearance-none bg-slate-50 text-sm">
                         </select>
                     </div>
                 </div>
                 <div id="list-view-container" class="flex-grow">
-                    </div>
+                </div>
             </div>
         </div>
-        
+
         <div id="calendar-view" class="hidden flex-grow flex flex-col bg-slate-50 overflow-hidden p-2 sm:p-4">
-             <div class="border-b border-gray-200 mb-4">
-                 <nav id="calendar-tabs" class="flex space-x-4 -mb-px">
-                     <button data-tab="internal" class="calendar-tab-button active">Tarefas & Tickets</button>
-                     <button data-tab="google" class="calendar-tab-button">Agenda Google</button>
-                 </nav>
-             </div>
-             <div id="calendar-tab-internal" class="calendar-tab-content active flex-grow">
-                 <div id="fullcalendar-container" class="bg-white p-1 sm:p-4 rounded-lg shadow-sm h-full"></div>
-             </div>
-             <div id="calendar-tab-google" class="calendar-tab-content">
-                 <div class="bg-white p-4 rounded-lg shadow-sm">
-                     <p class="text-gray-600 mb-4">Para visualizar a agenda, certifique-se de que a agenda de <code class="bg-gray-200 p-1 rounded">call@prismeapp.com.br</code> está pública.</p>
-                     <iframe id="google-calendar-iframe"
-                         src="https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FSao_Paulo&bgcolor=%23ffffff&src=Y2FsbEBwcmlzbWVhcHAuY29tLmJy&color=%23039BE5"
-                         style="border:solid 1px #777" width="800" height="600" frameborder="0" scrolling="no">
-                     </iframe>
-                 </div>
-             </div>
+            <div class="border-b border-gray-200 mb-4">
+                <nav id="calendar-tabs" class="flex space-x-4 -mb-px">
+                    <button data-tab="internal" class="calendar-tab-button active">Tarefas & Tickets</button>
+                    <button data-tab="google" class="calendar-tab-button">Agenda Google</button>
+                </nav>
+            </div>
+            <div id="calendar-tab-internal" class="calendar-tab-content active flex-grow">
+                <div id="fullcalendar-container" class="bg-white p-1 sm:p-4 rounded-lg shadow-sm h-full"></div>
+            </div>
+            <div id="calendar-tab-google" class="calendar-tab-content">
+                <div class="bg-white p-4 rounded-lg shadow-sm">
+                    <p class="text-gray-600 mb-4">Para visualizar a agenda, certifique-se de que a agenda de <code
+                            class="bg-gray-200 p-1 rounded">call@prismeapp.com.br</code> está pública.</p>
+                    <iframe id="google-calendar-iframe"
+                        src="https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FSao_Paulo&bgcolor=%23ffffff&src=Y2FsbEBwcmlzbWVhcHAuY29tLmJy&color=%23039BE5"
+                        style="border:solid 1px #777" width="800" height="600" frameborder="0" scrolling="no">
+                    </iframe>
+                </div>
+            </div>
         </div>
 
     </div>
 
-    <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-20">
-        <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-lg md:max-w-4xl max-h-[90vh] flex flex-col transform transition-all duration-300 ease-in-out scale-95 opacity-0"></div>
-    </div>
-    
-    <div id="item-editor-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-30">
-        <div id="item-editor-content" class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all duration-300 ease-in-out scale-95 opacity-0">
-            </div>
+    <div id="client-modal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-20">
+        <div id="modal-content"
+            class="bg-white rounded-xl shadow-2xl w-full max-w-lg md:max-w-4xl max-h-[90vh] flex flex-col transform transition-all duration-300 ease-in-out scale-95 opacity-0">
+        </div>
     </div>
 
-    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center p-4 z-30">
+    <div id="item-editor-modal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-30">
+        <div id="item-editor-content"
+            class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all duration-300 ease-in-out scale-95 opacity-0">
+        </div>
+    </div>
+
+    <div id="confirmation-modal"
+        class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center p-4 z-30">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
             <p id="confirmation-message" class="text-lg text-gray-800 mb-6">Você tem certeza?</p>
             <div class="flex justify-center gap-4">
-                <button id="confirm-cancel-btn" class="px-6 py-2 rounded-full text-gray-700 bg-gray-200 hover:bg-gray-300 font-semibold">Cancelar</button>
-                <button id="confirm-action-btn" class="px-6 py-2 rounded-full text-white bg-red-500 hover:bg-red-600 font-semibold">Confirmar</button>
+                <button id="confirm-cancel-btn"
+                    class="px-6 py-2 rounded-full text-gray-700 bg-gray-200 hover:bg-gray-300 font-semibold">Cancelar</button>
+                <button id="confirm-action-btn"
+                    class="px-6 py-2 rounded-full text-white bg-red-500 hover:bg-red-600 font-semibold">Confirmar</button>
             </div>
         </div>
     </div>
-    
-    <template id="loader-template"><div class="flex items-center justify-center h-full p-8"><i class="fas fa-spinner fa-spin text-4xl text-green-500"></i></div></template>
-    
-    <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transform translate-y-2 transition-all duration-300 z-40"></div>
+
+    <template id="loader-template">
+        <div class="flex items-center justify-center h-full p-8"><i
+                class="fas fa-spinner fa-spin text-4xl text-green-500"></i></div>
+    </template>
+
+    <div id="toast"
+        class="fixed bottom-5 right-5 bg-gray-800 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transform translate-y-2 transition-all duration-300 z-40">
+    </div>
 
     <script>
         // --- INÍCIO: CONFIGURAÇÃO DO SUPABASE ---
         const SUPABASE_URL = 'https://ccenxfyqwtfpexltuwrn.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjZW54Znlxd3RmcGV4bHR1d3JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzE1MTMsImV4cCI6MjA2ODg0NzUxM30.6un31sODuCyd5Dz_pR_kn656k74jjh5CNAfF0YteT7I';
-        
+
         const { createClient } = supabase;
         const dbClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         // --- FIM: CONFIGURAÇÃO DO SUPABASE ---
@@ -386,24 +612,24 @@
         const searchInput = document.getElementById('search-input');
         const loaderTemplate = document.getElementById('loader-template');
         const toast = document.getElementById('toast');
-        
+
         let appData = {
             clients: [], statuses: [], users: [], tags: [],
             client_tags: [], tasks: [], tickets: []
         };
-        
+
         let quillEditor = null;
         let itemQuillEditor = null;
         let currentUser = null;
         let deferredPrompt;
         let activeTagId = null;
         let currentView = 'kanban'; // kanban, list, calendar
-        
+
         let listFilterType = 'all';
         let listFilterResponsibleId = 'all';
         let currentRenderedListItems = [];
         let isFetchingMore = false;
-        
+
         const listView = document.getElementById('list-view');
         const calendarView = document.getElementById('calendar-view');
         let calendarInstance = null;
@@ -487,7 +713,7 @@
                     localStorage.setItem('crmUser', JSON.stringify(currentUser));
                     showApp(true);
                 } else {
-                     throw new Error('Credenciais inválidas.');
+                    throw new Error('Credenciais inválidas.');
                 }
             } catch (err) {
                 loginError.textContent = err.message;
@@ -495,16 +721,44 @@
             }
         });
 
+        async function fetchAllRows(tableName) {
+            let allRows = [];
+            let from = 0;
+            const limit = 1000;
+            let hasMore = true;
+
+            while (hasMore) {
+                const { data, error } = await dbClient
+                    .from(tableName)
+                    .select('*')
+                    .range(from, from + limit - 1);
+
+                if (error) return { data: null, error };
+
+                if (data.length > 0) {
+                    allRows = allRows.concat(data);
+                    from += limit;
+                    if (data.length < limit) {
+                        hasMore = false;
+                    }
+                } else {
+                    hasMore = false;
+                }
+            }
+            return { data: allRows, error: null };
+        }
+
         async function initializeApp() {
             try {
+                // Usamos fetchAllRows para tabelas que podem passar de 1000 registros
                 const [clientsRes, statusesRes, usersRes, tagsRes, clientTagsRes, tasksRes, ticketsRes] = await Promise.all([
-                    dbClient.from('clientes').select('*'),
+                    fetchAllRows('clientes'),
                     dbClient.from('status').select('*'),
                     dbClient.from('usuarios').select('*'),
                     dbClient.from('tags').select('*'),
-                    dbClient.from('cliente_tags').select('*'),
-                    dbClient.from('tarefas').select('*'),
-                    dbClient.from('tickets').select('*')
+                    fetchAllRows('cliente_tags'),
+                    fetchAllRows('tarefas'),
+                    fetchAllRows('tickets')
                 ]);
 
                 const results = [clientsRes, statusesRes, usersRes, tagsRes, clientTagsRes, tasksRes, ticketsRes];
@@ -519,7 +773,7 @@
 
                 loadingScreen.classList.add('hidden');
                 crmApp.classList.remove('hidden');
-                
+
                 setupFilterLogic();
                 setupUserMenu();
                 applyFiltersAndRender();
@@ -531,7 +785,7 @@
                 console.error("Erro na inicialização:", error);
             }
         }
-        
+
         // --- LÓGICA DE TEMPO REAL (REALTIME) ---
         function setupRealtimeSubscriptions() {
             console.log("Configurando inscrições de tempo real...");
@@ -573,7 +827,7 @@
                     break;
                 case 'DELETE':
                     const oldId = oldRecord[idKey] || (oldRecord.old_record ? oldRecord.old_record[idKey] : null);
-                    if(oldId) {
+                    if (oldId) {
                         appData[appDataKey] = appData[appDataKey].filter(item => item[idKey] != oldId);
                     }
                     break;
@@ -599,17 +853,19 @@
             if (!clientModal.classList.contains('hidden')) {
                 const form = modalContent.querySelector('#modal-form');
                 if (form && form.dataset.clientId) {
-                     const client = appData.clients.find(c => c.id_cliente.toString() === form.dataset.clientId);
-                     if(client) {
-                         // Apenas atualiza as tags se o modal estiver aberto, para não recarregar tudo
-                         renderClientTags(client.id_cliente);
-                     } else {
-                         // Se o cliente não existe mais, fecha o modal
-                         hideClientModal();
-                     }
+                    const client = appData.clients.find(c => c.id_cliente.toString() === form.dataset.clientId);
+                    if (client) {
+                        // Apenas atualiza as tags se o modal estiver aberto, para não recarregar tudo
+                        renderClientTags(client.id_cliente);
+                        renderTaskList(client.id_cliente);
+                        renderTicketList(client.id_cliente);
+                    } else {
+                        // Se o cliente não existe mais, fecha o modal
+                        hideClientModal();
+                    }
                 }
             }
-            
+
             if (currentView === 'kanban') {
                 renderBoard(getFilteredClients());
             } else if (currentView === 'list') {
@@ -664,7 +920,7 @@
             });
             searchInput.addEventListener('input', applyFiltersAndRender);
         }
-        
+
         function setupUserMenu() {
             const userMenuContainer = document.getElementById('user-menu-container');
             const userAvatarBtn = document.getElementById('user-avatar-btn');
@@ -722,13 +978,13 @@
                 }
             });
         }
-        
+
         function initializeColumnControls() {
             document.querySelectorAll('.collapse-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => { e.stopPropagation(); btn.closest('.kanban-column').classList.toggle('collapsed'); });
             });
             document.querySelectorAll('.kanban-column').forEach(column => {
-                column.addEventListener('click', (e) => { if(column.classList.contains('collapsed')) { column.classList.remove('collapsed'); } })
+                column.addEventListener('click', (e) => { if (column.classList.contains('collapsed')) { column.classList.remove('collapsed'); } })
             })
         }
 
@@ -740,7 +996,7 @@
             dueDate.setHours(23, 59, 59, 999);
             const diffTime = dueDate.getTime() - today.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
+
             if (diffDays < 0) return { text: `Atrasado ${Math.abs(diffDays)}d`, colorClass: 'text-red-500 font-semibold', pulse: true };
             if (diffDays === 0) return { text: 'Hoje', colorClass: 'text-orange-500 font-semibold', pulse: true };
             if (diffDays === 1) return { text: 'Amanhã', colorClass: 'text-yellow-600 font-semibold', pulse: false };
@@ -816,7 +1072,7 @@
         function initializeDragAndDrop() {
             document.querySelectorAll('.kanban-cards').forEach(column => {
                 new Sortable(column, {
-                    group: 'kanban', animation: 150, delay: 200, delayOnTouchOnly: true, 
+                    group: 'kanban', animation: 150, delay: 200, delayOnTouchOnly: true,
                     onEnd: async (evt) => {
                         const { item, to, from } = evt;
                         const clientId = item.dataset.clientId;
@@ -868,21 +1124,21 @@
                         .catch(err => console.log('Falha no registro do ServiceWorker:', err));
                 });
             }
-            
+
             initializeMainEventListeners();
             setupListViewInteractions();
             setupViewToggle();
             setupCalendarViewInteractions();
 
             const savedUser = localStorage.getItem('crmUser');
-            if (savedUser) { 
-                currentUser = JSON.parse(savedUser); 
-                showApp(true); 
-            } else { 
-                showLogin(); 
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showApp(true);
+            } else {
+                showLogin();
             }
             clientModal.addEventListener('click', (e) => { if (e.target === clientModal) hideClientModal(); });
-            document.addEventListener('keydown', (e) => { 
+            document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     if (!document.getElementById('item-editor-modal').classList.contains('hidden')) closeItemEditorModal();
                     else if (!clientModal.classList.contains('hidden')) hideClientModal();
@@ -907,9 +1163,9 @@
             if (installButtonLogin) installButtonLogin.addEventListener('click', installHandler);
             if (installButtonHeader) installButtonHeader.addEventListener('click', installHandler);
         });
-        
+
         // --- FUNÇÕES DE LÓGICA (MODAL, TAREFAS, TICKETS, ETC.) ---
-        
+
         function calculateProgress(clientId) {
             const tasks = appData.tasks ? appData.tasks.filter(p => p.id_cliente === clientId) : [];
             if (tasks.length === 0) return 0;
@@ -929,7 +1185,7 @@
 
         function switchView(viewName) {
             currentView = viewName;
-            
+
             kanbanBoard.classList.add('hidden');
             listView.classList.add('hidden');
             calendarView.classList.add('hidden');
@@ -938,7 +1194,7 @@
                 btn.classList.remove('active', 'bg-gray-100', 'text-gray-700');
                 btn.classList.add('bg-white', 'text-gray-500', 'hover:bg-gray-100');
             });
-            
+
             const activeBtn = document.getElementById(`${viewName}-view-btn`);
             if (activeBtn) {
                 activeBtn.classList.add('active', 'bg-gray-100', 'text-gray-700');
@@ -953,7 +1209,7 @@
             } else if (viewName === 'calendar') {
                 calendarView.classList.remove('hidden');
             }
-            
+
             applyFiltersAndRender();
         }
 
@@ -968,17 +1224,17 @@
             // Atualização otimista: Adiciona localmente primeiro para uma UI mais rápida
             const newAssociation = { id_cliente: parseInt(clientId), id_tag: parseInt(tagId) };
             appData.client_tags.push(newAssociation);
-            renderClientTags(clientId); 
+            renderClientTags(clientId);
 
             try {
                 const { error } = await dbClient.from('cliente_tags').insert({ id_cliente: clientId, id_tag: tagId });
-                
+
                 // O erro 23505 (chave duplicada) pode acontecer em uma race condition.
                 // Como a UI já foi atualizada otimisticamente, podemos ignorar este erro específico.
                 if (error && error.code !== '23505') {
                     throw error; // Lança outros erros para o bloco catch
                 }
-                
+
                 showToast('Tag adicionada!');
 
             } catch (error) {
@@ -991,10 +1247,10 @@
                 );
                 renderClientTags(clientId); // Re-renderiza para refletir a reversão
             } finally {
-                 if(select) {
-                     select.disabled = false;
-                     select.value = '';
-                 }
+                if (select) {
+                    select.disabled = false;
+                    select.value = '';
+                }
             }
         }
 
@@ -1003,7 +1259,7 @@
                 try {
                     const { error } = await dbClient.from('cliente_tags').delete().match({ id_cliente: clientId, id_tag: tagId });
                     if (error) throw error;
-                    
+
                     // Atualização otimista com comparação de tipos robusta
                     const clientIdStr = clientId.toString();
                     const tagIdStr = tagId.toString();
@@ -1075,18 +1331,18 @@
         // --- FUNÇÕES DO MODAL DO CLIENTE ---
 
         function showClientModal(clientId, onReadyCallback = null) {
-            const client = appData.clients.find(c => c.id_cliente == clientId); 
+            const client = appData.clients.find(c => c.id_cliente == clientId);
             if (!client) return;
 
             const uncompletedTasksCount = appData.tasks ? appData.tasks.filter(t => t.id_cliente == clientId && !t.concluido).length : 0;
             const uncompletedTicketsCount = appData.tickets ? appData.tickets.filter(t => t.id_cliente == clientId && !t.concluido).length : 0;
             const tasksBadgeHtml = uncompletedTasksCount > 0 ? `<span class="tab-badge">${uncompletedTasksCount}</span>` : '';
             const ticketsBadgeHtml = uncompletedTicketsCount > 0 ? `<span class="tab-badge">${uncompletedTicketsCount}</span>` : '';
-            
-            modalContent.innerHTML = ''; 
+
+            modalContent.innerHTML = '';
             modalContent.appendChild(loaderTemplate.content.cloneNode(true));
-            clientModal.classList.remove('hidden');  
-            
+            clientModal.classList.remove('hidden');
+
             requestAnimationFrame(() => {
                 modalContent.classList.remove('scale-95', 'opacity-0');
             });
@@ -1144,29 +1400,29 @@
                         <div id="ticket-editor-container" class="mt-4 border-t pt-4 hidden"></div>
                     </div>
                 </div>`;
-            
+
             // Renderiza as tags e adiciona os event listeners
             renderClientTags(clientId);
 
-            const tabs = document.querySelectorAll('.tab-button'); 
+            const tabs = document.querySelectorAll('.tab-button');
             const contents = document.querySelectorAll('.tab-content');
-            tabs.forEach(tab => { 
-                tab.addEventListener('click', () => { 
-                    tabs.forEach(t => t.classList.remove('active')); 
-                    contents.forEach(c => c.classList.remove('active')); 
-                    tab.classList.add('active'); 
-                    document.getElementById(`tab-content-${tab.dataset.tab}`).classList.add('active'); 
-                }); 
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(`tab-content-${tab.dataset.tab}`).classList.add('active');
+                });
             });
 
-            renderTaskList(clientId); 
+            renderTaskList(clientId);
             renderTicketList(clientId);
 
             document.getElementById('close-modal-btn').addEventListener('click', hideClientModal);
             document.getElementById('save-client-btn').addEventListener('click', () => handleSaveClient(clientId));
             document.getElementById('add-main-task-btn').addEventListener('click', () => showNewTaskForm(clientId, null));
             document.getElementById('add-main-ticket-btn').addEventListener('click', () => showNewTicketForm(clientId, null));
-            
+
             if (onReadyCallback) {
                 requestAnimationFrame(onReadyCallback);
             }
@@ -1189,7 +1445,7 @@
                 }
             }, 300);
         }
-        
+
         function updateCardOnBoard(clientId) {
             const cardElement = document.querySelector(`.kanban-card[data-client-id="${clientId}"]`);
             if (cardElement) {
@@ -1200,7 +1456,7 @@
                 }
             }
         }
-        
+
         function updateColumnHeaders() {
             const clientList = getFilteredClients();
             appData.statuses.forEach(status => {
@@ -1250,7 +1506,7 @@
         function renderTaskList(clientId) {
             const container = document.getElementById('task-list-container');
             const clientTasks = appData.tasks ? appData.tasks.filter(t => t.id_cliente == clientId) : [];
-            
+
             function buildTaskTree(parentId) {
                 const tasks = clientTasks.filter(task => {
                     if (parentId === null) return task.parent_id_tarefa === null;
@@ -1286,18 +1542,18 @@
                 return html;
             }
             container.innerHTML = buildTaskTree(null) || '<p class="text-gray-500">Nenhuma tarefa criada para este cliente.</p>';
-            
+
             container.querySelectorAll('.task-checkbox').forEach(cb => cb.addEventListener('change', (e) => handleToggleTask(e.target.dataset.taskId, e.target.checked)));
             container.querySelectorAll('.add-subtask-btn').forEach(btn => btn.addEventListener('click', (e) => showNewTaskForm(clientId, e.currentTarget.dataset.parentId)));
             container.querySelectorAll('.edit-task-btn').forEach(btn => btn.addEventListener('click', (e) => showTaskEditor(e.currentTarget.dataset.taskId)));
             container.querySelectorAll('.delete-task-btn').forEach(btn => btn.addEventListener('click', (e) => handleDeleteTask(e.currentTarget.dataset.taskId)));
         }
-        
+
         // --- FUNÇÕES DE TICKETS ---
         function renderTicketList(clientId) {
             const container = document.getElementById('ticket-list-container');
             const allClientTickets = appData.tickets ? appData.tickets.filter(t => t.id_cliente == clientId) : [];
-            
+
             const generateTicketItemHtml = (ticket) => {
                 const responsibleUser = appData.users.find(u => u.id_usuario == ticket.responsavel_id);
                 const dueDate = ticket.prazo_final ? new Date(ticket.prazo_final) : null;
@@ -1361,7 +1617,7 @@
                 return html;
             }
             container.innerHTML = buildTicketHtmlRecursive(null) || '<p class="text-gray-500">Nenhum ticket criado para este cliente.</p>';
-            
+
             container.querySelectorAll('.ticket-checkbox').forEach(cb => cb.addEventListener('change', (e) => handleToggleTicket(e.target.dataset.ticketId, e.target.checked)));
             container.querySelectorAll('.add-subticket-btn').forEach(btn => btn.addEventListener('click', (e) => showNewTicketForm(clientId, e.currentTarget.dataset.parentId)));
             container.querySelectorAll('.edit-ticket-btn').forEach(btn => btn.addEventListener('click', (e) => showTicketEditor(e.currentTarget.dataset.ticketId)));
@@ -1369,12 +1625,12 @@
         }
 
         // --- IMPLEMENTAÇÃO DAS FUNÇÕES DE TAREFAS (COM CORREÇÃO) ---
-        
+
         function showNewTaskForm(clientId, parentId = null) {
             const container = document.getElementById('task-editor-container');
             container.innerHTML = '';
             container.classList.remove('hidden');
-            
+
             const formHtml = `
                 <div class="task-form-container" id="new-task-form">
                     <div class="mb-4">
@@ -1418,17 +1674,17 @@
                     </div>
                 </div>
             `;
-            
+
             container.innerHTML = formHtml;
-            
+
             const titleInput = document.getElementById('new-task-title');
             const formDetails = document.getElementById('task-form-details');
             const formContainer = document.getElementById('new-task-form');
             const cancelBtn = document.getElementById('cancel-task-btn');
             const saveBtn = document.getElementById('save-task-btn');
-            
+
             titleInput.focus();
-            
+
             titleInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && titleInput.value.trim()) {
                     e.preventDefault();
@@ -1437,16 +1693,16 @@
                     document.getElementById('new-task-responsible').focus();
                 }
             });
-            
+
             cancelBtn.addEventListener('click', () => {
                 container.classList.add('hidden');
                 container.innerHTML = '';
             });
-            
+
             saveBtn.addEventListener('click', () => {
                 handleCreateTask(clientId, parentId);
             });
-            
+
             container.querySelectorAll('.date-shortcut-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const days = parseInt(e.target.dataset.days);
@@ -1457,29 +1713,29 @@
                 });
             });
         }
-        
+
         async function handleCreateTask(clientId, parentId = null) {
             const title = document.getElementById('new-task-title').value.trim();
             const responsibleId = document.getElementById('new-task-responsible').value || null;
             const deadline = document.getElementById('new-task-deadline').value || null;
             const description = document.getElementById('new-task-description').value.trim() || null;
-            
+
             if (!title) {
                 showToast('O título da tarefa é obrigatório');
                 return;
             }
-            
+
             const saveBtn = document.getElementById('save-task-btn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
-            
+
             try {
-                const existingTasks = appData.tasks.filter(t => 
-                    t.id_cliente == clientId && 
+                const existingTasks = appData.tasks.filter(t =>
+                    t.id_cliente == clientId &&
                     (parentId ? t.parent_id_tarefa == parentId : t.parent_id_tarefa === null)
                 );
                 const nextOrder = existingTasks.length > 0 ? Math.max(...existingTasks.map(t => t.ordem || 0)) + 1 : 1;
-                
+
                 const uniqueId = `TSK-${Date.now()}`;
 
                 const taskData = {
@@ -1493,42 +1749,51 @@
                     ordem: nextOrder,
                     concluido: false
                 };
-                
+
                 const { data, error } = await dbClient.from('tarefas').insert([taskData]).select().single();
-                
+
                 if (error) throw error;
-                
+
                 showToast('Tarefa criada com sucesso!');
-                
+
             } catch (error) {
                 console.error('Erro ao criar tarefa:', error);
                 showToast(`Erro ao criar tarefa: ${error.message}`);
             } finally {
-                 document.getElementById('task-editor-container').classList.add('hidden');
-                 document.getElementById('task-editor-container').innerHTML = '';
+                document.getElementById('task-editor-container').classList.add('hidden');
+                document.getElementById('task-editor-container').innerHTML = '';
             }
         }
-        
+
         async function handleToggleTask(taskId, completed) {
             try {
                 const { error } = await dbClient
                     .from('tarefas')
                     .update({ concluido: completed })
                     .eq('id_tarefa', taskId);
-                
+
                 if (error) throw error;
-                
+
             } catch (error) {
                 console.error('Erro ao atualizar tarefa:', error);
                 showToast('Erro ao atualizar tarefa');
             }
         }
-        
+
         async function handleDeleteTask(taskId) {
+            const task = appData.tasks.find(t => t.id_tarefa == taskId);
+            if (!task) return;
+            const clientId = task.id_cliente;
+
             showConfirmationModal('Tem certeza que deseja excluir esta tarefa e todas as suas subtarefas?', async () => {
                 try {
                     const { error } = await dbClient.from('tarefas').delete().eq('id_tarefa', taskId);
                     if (error) throw error;
+
+                    appData.tasks = appData.tasks.filter(t => t.id_tarefa != taskId);
+                    renderTaskList(clientId);
+                    updateCardOnBoard(clientId);
+
                     showToast('Tarefa excluída com sucesso');
                 } catch (error) {
                     console.error('Erro ao excluir tarefa:', error);
@@ -1536,14 +1801,14 @@
                 }
             });
         }
-        
+
         // --- IMPLEMENTAÇÃO DAS FUNÇÕES DE TICKETS (COM CORREÇÃO) ---
-        
+
         function showNewTicketForm(clientId, parentId = null) {
             const container = document.getElementById('ticket-editor-container');
             container.innerHTML = '';
             container.classList.remove('hidden');
-            
+
             const formHtml = `
                 <div class="task-form-container" id="new-ticket-form">
                     <div class="mb-4">
@@ -1582,17 +1847,17 @@
                     </div>
                 </div>
             `;
-            
+
             container.innerHTML = formHtml;
-            
+
             const titleInput = document.getElementById('new-ticket-title');
             const formDetails = document.getElementById('ticket-form-details');
             const formContainer = document.getElementById('new-ticket-form');
             const cancelBtn = document.getElementById('cancel-ticket-btn');
             const saveBtn = document.getElementById('save-ticket-btn');
-            
+
             titleInput.focus();
-            
+
             titleInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && titleInput.value.trim()) {
                     e.preventDefault();
@@ -1601,39 +1866,39 @@
                     document.getElementById('new-ticket-responsible').focus();
                 }
             });
-            
+
             cancelBtn.addEventListener('click', () => {
                 container.classList.add('hidden');
                 container.innerHTML = '';
             });
-            
+
             saveBtn.addEventListener('click', () => {
                 handleCreateTicket(clientId, parentId);
             });
         }
-        
+
         async function handleCreateTicket(clientId, parentId = null) {
             const title = document.getElementById('new-ticket-title').value.trim();
             const responsibleId = document.getElementById('new-ticket-responsible').value || null;
             const deadline = document.getElementById('new-ticket-deadline').value || null;
             const description = document.getElementById('new-ticket-description').value.trim() || null;
-            
+
             if (!title) {
                 showToast('O título do ticket é obrigatório');
                 return;
             }
-            
+
             const saveBtn = document.getElementById('save-ticket-btn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
-            
+
             try {
-                const existingTickets = appData.tickets.filter(t => 
-                    t.id_cliente == clientId && 
+                const existingTickets = appData.tickets.filter(t =>
+                    t.id_cliente == clientId &&
                     (parentId ? t.parent_id_ticket == parentId : t.parent_id_ticket === null)
                 );
                 const nextOrder = existingTickets.length > 0 ? Math.max(...existingTickets.map(t => t.ordem || 0)) + 1 : 1;
-                
+
                 const uniqueId = `TCK-${Date.now()}`;
 
                 const ticketData = {
@@ -1647,13 +1912,13 @@
                     ordem: nextOrder,
                     concluido: false
                 };
-                
+
                 const { data, error } = await dbClient.from('tickets').insert([ticketData]).select().single();
-                
+
                 if (error) throw error;
-                
+
                 showToast('Ticket criado com sucesso!');
-                
+
             } catch (error) {
                 console.error('Erro ao criar ticket:', error);
                 showToast(`Erro ao criar ticket: ${error.message}`);
@@ -1662,22 +1927,22 @@
                 document.getElementById('ticket-editor-container').innerHTML = '';
             }
         }
-        
+
         async function handleToggleTicket(ticketId, completed) {
             try {
                 const { error } = await dbClient
                     .from('tickets')
                     .update({ concluido: completed })
                     .eq('id_ticket', ticketId);
-                
+
                 if (error) throw error;
-                
+
             } catch (error) {
                 console.error('Erro ao atualizar ticket:', error);
                 showToast('Erro ao atualizar ticket');
             }
         }
-        
+
         async function handleDeleteTicket(ticketId) {
             showConfirmationModal('Tem certeza que deseja excluir este ticket e todos os seus sub-tickets?', async () => {
                 try {
@@ -1690,10 +1955,10 @@
                 }
             });
         }
-        
+
         // --- FUNÇÕES DA NOVA VISÃO DE LISTA ---
-        
-        function populateListViewFilters() { 
+
+        function populateListViewFilters() {
             const responsibleFilter = document.getElementById('list-filter-responsible');
             const typeFilter = document.getElementById('list-filter-type');
             if (responsibleFilter.options.length > 1) return;
@@ -1702,7 +1967,7 @@
             (appData.users || []).forEach(user => {
                 responsibleFilter.innerHTML += `<option value="${user.id_usuario}">${user.nome_usuario}</option>`;
             });
-            
+
             const filterHandler = () => {
                 listFilterType = typeFilter.value;
                 listFilterResponsibleId = responsibleFilter.value;
@@ -1727,7 +1992,7 @@
                     avatarHtml = `<div title="${responsibleUser.nome_usuario}" class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">${initial}</div>`;
                 }
             }
-            
+
             const iconHtml = item.type === 'task'
                 ? `<div class="w-8 text-center" title="Tarefa"><i class="fas fa-clipboard-check text-slate-400"></i></div>`
                 : `<div class="w-8 text-center" title="Ticket"><i class="fas fa-ticket text-orange-400"></i></div>`;
@@ -1751,8 +2016,8 @@
                 </div>
             `;
         }
-        
-        function renderListView() { 
+
+        function renderListView() {
             const container = document.getElementById('list-view-container');
             container.innerHTML = loaderTemplate.content.cloneNode(true).firstElementChild.outerHTML;
 
@@ -1784,17 +2049,17 @@
                 if (!dateB) return -1;
                 return dateA - dateB;
             });
-            
+
             currentRenderedListItems = filteredItems;
             isFetchingMore = false;
-            
+
             const initialItems = currentRenderedListItems.slice(0, LIST_ITEMS_INITIAL);
 
             if (initialItems.length === 0) {
                 container.innerHTML = `<div class="text-center p-8 text-gray-500">Nenhuma atividade encontrada com os filtros atuais.</div>`;
                 return;
             }
-            
+
             container.className = "flex-grow space-y-3";
             container.innerHTML = initialItems.map(createListItemHtml).join('');
         }
@@ -1807,12 +2072,12 @@
             if (renderedCount >= currentRenderedListItems.length) return;
 
             isFetchingMore = true;
-            
+
             const nextBatch = currentRenderedListItems.slice(renderedCount, renderedCount + LIST_ITEMS_MORE);
             const newHtml = nextBatch.map(createListItemHtml).join('');
-            
+
             container.insertAdjacentHTML('beforeend', newHtml);
-            
+
             setTimeout(() => { isFetchingMore = false; }, 100);
         }
 
@@ -1846,29 +2111,29 @@
                 }
 
                 showClientModal(clientId, () => {
-                     const tabToClick = itemType === 'task' ? 'tasks' : 'tickets';
-                     const editorToShow = itemType === 'task' ? showTaskEditor : showTicketEditor;
-                     document.querySelector(`button[data-tab="${tabToClick}"]`).click();
-                     editorToShow(itemId);
+                    const tabToClick = itemType === 'task' ? 'tasks' : 'tickets';
+                    const editorToShow = itemType === 'task' ? showTaskEditor : showTicketEditor;
+                    document.querySelector(`button[data-tab="${tabToClick}"]`).click();
+                    editorToShow(itemId);
                 });
             });
         }
-        
+
         // ==========================================================
         // INÍCIO: FUNÇÕES DA NOVA VISÃO DE CALENDÁRIO
         // ==========================================================
-        
+
         function setupCalendarViewInteractions() {
             const tabsContainer = document.getElementById('calendar-tabs');
             tabsContainer.addEventListener('click', (e) => {
                 const button = e.target.closest('.calendar-tab-button');
                 if (!button) return;
-                
+
                 const tabName = button.dataset.tab;
-                
+
                 tabsContainer.querySelectorAll('.calendar-tab-button').forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
-                
+
                 document.querySelectorAll('.calendar-tab-content').forEach(content => content.classList.remove('active'));
                 document.getElementById(`calendar-tab-${tabName}`).classList.add('active');
             });
@@ -1882,10 +2147,10 @@
                 calendarInstance.addEventSource(getCalendarEvents());
             }
         }
-        
+
         function getCalendarEvents() {
             const events = [];
-            
+
             (appData.tasks || []).forEach(task => {
                 if (task.prazo_final) {
                     const client = appData.clients.find(c => c.id_cliente === task.id_cliente);
@@ -1923,10 +2188,10 @@
                     });
                 }
             });
-            
+
             return events;
         }
-        
+
         function initializeCalendar() {
             const calendarEl = document.getElementById('fullcalendar-container');
             calendarInstance = new FullCalendar.Calendar(calendarEl, {
@@ -1944,14 +2209,14 @@
                     list: 'Lista'
                 },
                 events: getCalendarEvents(),
-                eventClick: function(info) {
+                eventClick: function (info) {
                     const { type, itemId, clientId } = info.event.extendedProps;
-                    
+
                     if (!clientId) {
                         showToast('Cliente não encontrado para este evento.');
                         return;
                     }
-                    
+
                     showClientModal(clientId, () => {
                         const tabToClick = type === 'task' ? 'tasks' : 'tickets';
                         const editorToShow = type === 'task' ? showTaskEditor : showTicketEditor;
@@ -1959,7 +2224,7 @@
                         editorToShow(itemId);
                     });
                 },
-                eventDidMount: function(info) {
+                eventDidMount: function (info) {
                     info.el.setAttribute('title', `${info.event.title}\nCliente: ${info.event.extendedProps.clientName}`);
                 }
             });
@@ -1977,7 +2242,7 @@
         function showTaskEditor(taskId) {
             showItemEditor(taskId, 'task');
         }
-        
+
         function showTicketEditor(ticketId) {
             showItemEditor(ticketId, 'ticket');
         }
@@ -2053,7 +2318,7 @@
                 itemEditorContent.classList.remove('scale-95', 'opacity-0');
             });
         }
-        
+
         async function handleEditItem(itemId, itemType) {
             const isTask = itemType === 'task';
             const tableName = isTask ? 'tarefas' : 'tickets';
@@ -2071,7 +2336,7 @@
                 prazo_final: deadline,
                 descricao_detalhada: description
             };
-            
+
             const saveBtn = document.getElementById('save-item-btn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
@@ -2088,8 +2353,8 @@
                 saveBtn.innerHTML = 'Salvar Alterações';
             }
         }
-        
-        function closeItemEditorModal() { 
+
+        function closeItemEditorModal() {
             const itemEditorModal = document.getElementById('item-editor-modal');
             const itemEditorContent = document.getElementById('item-editor-content');
             itemEditorContent.classList.add('scale-95', 'opacity-0');
@@ -2106,4 +2371,5 @@
 
     </script>
 </body>
+
 </html>
