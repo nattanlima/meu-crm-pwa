@@ -1,0 +1,338 @@
+/* --- ESTILOS GERAIS E MELHORIAS DE LAYOUT --- */
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            /* Impede o scroll da página inteira */
+            background-color: #f8fafc;
+            /* slate-50 */
+        }
+
+        .kanban-board-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .kanban-board-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .kanban-board-container::-webkit-scrollbar-thumb {
+            background: #a3a3a3;
+            border-radius: 4px;
+        }
+
+        /* --- ESTILOS DO QUADRO KANBAN (ESTILO TRELLO) --- */
+        #kanban-board {
+            height: calc(100vh - 73px);
+            /* Altura do header em desktop */
+            overflow-x: auto;
+            /* Garante o scroll horizontal */
+            overflow-y: hidden;
+            /* Previne o scroll vertical no quadro */
+        }
+
+        @media (max-width: 767px) {
+            #kanban-board {
+                height: calc(100vh - 115px);
+                /* Altura do header em mobile (ajustada) */
+            }
+        }
+
+        .kanban-column {
+            height: 100%;
+            /* Colunas ocupam toda a altura do board */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .kanban-cards {
+            flex-grow: 1;
+            /* Faz a área dos cards ocupar o espaço restante */
+            overflow-y: auto;
+            /* Habilita o scroll vertical DENTRO da coluna */
+            padding-right: 4px;
+            /* Espaço para a barra de rolagem */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        .kanban-cards::-webkit-scrollbar {
+            display: none;
+            /* Chrome, Safari, and Opera */
+        }
+
+        /* --- ESTILOS DO MODAL --- */
+        #task-list-container,
+        #ticket-list-container {
+            max-height: 45vh;
+            overflow-y: auto;
+        }
+
+        #list-view-container-wrapper::-webkit-scrollbar,
+        #calendar-view::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #list-view-container-wrapper::-webkit-scrollbar-track,
+        #calendar-view::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        #list-view-container-wrapper::-webkit-scrollbar-thumb,
+        #calendar-view::-webkit-scrollbar-thumb {
+            background: #a3a3a3;
+            border-radius: 4px;
+        }
+
+        #task-list-container::-webkit-scrollbar,
+        #ticket-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #task-list-container::-webkit-scrollbar-track,
+        #ticket-list-container::-webkit-scrollbar-track {
+            background: #e2e8f0;
+        }
+
+        #task-list-container::-webkit-scrollbar-thumb,
+        #ticket-list-container::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 3px;
+        }
+
+        .tab-badge {
+            background-color: #e2e8f0;
+            /* slate-200 */
+            color: #475569;
+            /* slate-600 */
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-left: 8px;
+        }
+
+        /* --- ESTILOS DO FILTRO E MENU DE USUÁRIO --- */
+        .popup-menu {
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+        }
+
+        .popup-menu.hidden {
+            transform: translateY(-10px);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .filter-tag-option {
+            transition: background-color: 0.2s;
+        }
+
+        .filter-tag-option:hover {
+            background-color: #f1f5f9;
+            /* slate-100 */
+        }
+
+        /* Estilo para a nova visão de lista */
+        .list-item-row {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .list-item-row:hover {
+            transform: translateY(-2px);
+        }
+
+        /* --- ESTILOS PARA A VISÃO DE CALENDÁRIO --- */
+        #calendar-view {
+            overflow-y: auto;
+        }
+
+        .calendar-tab-button {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            color: #737373;
+            /* neutral-500 */
+        }
+
+        .calendar-tab-button.active {
+            border-color: #2fc36a;
+            /* sua cor principal */
+            color: #15803d;
+            /* green-700 */
+            font-weight: 600;
+        }
+
+        .calendar-tab-content {
+            display: none;
+        }
+
+        .calendar-tab-content.active {
+            display: block;
+        }
+
+        #google-calendar-iframe {
+            width: 100%;
+            height: calc(100vh - 220px);
+            /* Ajuste conforme necessário */
+            border: 0;
+        }
+
+        /* Estilos do FullCalendar */
+        :root {
+            --fc-border-color: #e2e8f0;
+            --fc-daygrid-event-dot-width: 8px;
+            --fc-list-event-hover-bg-color: #f1f5f9;
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 1.25em;
+            font-weight: 600;
+        }
+
+        .fc .fc-button-primary {
+            background-color: #2fc36a !important;
+            border-color: #2fc36a !important;
+            color: white !important;
+            font-size: 0.875rem !important;
+        }
+
+        .fc .fc-button-primary:not(:disabled).fc-button-active,
+        .fc .fc-button-primary:not(:disabled):active {
+            background-color: #29a85b !important;
+            border-color: #29a85b !important;
+        }
+
+        .fc-event {
+            cursor: pointer;
+            border-radius: 4px !important;
+        }
+
+        /* --- OUTROS ESTILOS --- */
+        .kanban-card {
+            user-select: none;
+        }
+
+        .kanban-column.collapsed {
+            width: 56px;
+            cursor: pointer;
+        }
+
+        .kanban-column.collapsed .column-header-expanded,
+        .kanban-column.collapsed .kanban-cards {
+            display: none;
+        }
+
+        .kanban-column.collapsed .column-header-collapsed {
+            display: flex;
+        }
+
+        .kanban-column .column-header-collapsed .vertical-text {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            padding: 16px 0;
+        }
+
+        .form-input {
+            margin-top: 4px;
+            display: block;
+            width: 100%;
+            border-radius: 0.5rem;
+            border: 1px solid #d4d4d8;
+            padding: 0.5rem 0.75rem;
+            background-color: #fafafa;
+        }
+
+        .form-input:focus {
+            border-color: #16a34a;
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 2px #a7f3d0;
+        }
+
+        .ql-editor {
+            min-height: 150px;
+        }
+
+        .tab-button {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            color: #737373;
+        }
+
+        .tab-button.active {
+            border-color: #2fc36a;
+            color: #15803d;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .suggestion-btn {
+            background-color: #f4f4f5;
+            color: #52525b;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background-color: 0.2s;
+        }
+
+        .suggestion-btn:hover {
+            background-color: #e4e4e7;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.7;
+                transform: scale(1.02);
+            }
+        }
+
+        .pulse-animation {
+            animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Estilos para o formulário de nova tarefa */
+        .task-form-container {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .task-form-expanded {
+            border-color: #2fc36a;
+            background-color: #ffffff;
+        }
+
+        .task-title-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #374151;
+            outline: none;
+            padding: 0.5rem 0;
+        }
+
+        .task-title-input::placeholder {
+            color: #9ca3af;
+            font-weight: normal;
+        }
